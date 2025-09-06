@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Filter, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, Plus, Building2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { format, addDays, startOfWeek, endOfWeek, addWeeks, subWeeks } from "date-fns";
 import { es } from "date-fns/locale";
@@ -92,7 +93,8 @@ const getEventTypeLabel = (type: string) => {
 export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week">("week");
-  const [selectedRoom, setSelectedRoom] = useState<string>("all");
+  const [viewType, setViewType] = useState<"single" | "all">("all");
+  const [selectedRoom, setSelectedRoom] = useState<string>("");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ export function CalendarView() {
 
   useEffect(() => {
     fetchReservations();
-  }, [currentDate, selectedRoom, viewMode]);
+  }, [currentDate, selectedRoom, viewMode, viewType]);
 
   const fetchRooms = async () => {
     try {
@@ -145,7 +147,7 @@ export function CalendarView() {
         .lte('start_datetime', endDate.toISOString())
         .order('start_datetime');
 
-      if (selectedRoom !== "all") {
+      if (viewType === "single" && selectedRoom) {
         query = query.eq('room_id', selectedRoom);
       }
 
@@ -172,7 +174,7 @@ export function CalendarView() {
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   };
 
-  const getReservationsForTimeSlot = (date: Date, timeSlot: string) => {
+  const getReservationsForTimeSlot = (date: Date, timeSlot: string, roomId?: string) => {
     const slotStart = new Date(date);
     const [hour] = timeSlot.split(':');
     slotStart.setHours(parseInt(hour), 0, 0, 0);
@@ -184,70 +186,195 @@ export function CalendarView() {
       const resStart = new Date(reservation.start_datetime);
       const resEnd = new Date(reservation.end_datetime);
       
-      return (
+      const timeOverlap = (
         (resStart >= slotStart && resStart < slotEnd) ||
         (resEnd > slotStart && resEnd <= slotEnd) ||
         (resStart <= slotStart && resEnd >= slotEnd)
       );
+
+      if (roomId) {
+        const roomMatch = rooms.find(r => r.id === roomId);
+        return timeOverlap && reservation.room?.code === roomMatch?.code;
+      }
+
+      return timeOverlap;
     });
   };
 
-  const renderWeekView = () => {
+  const getReservationsByRoom = (date: Date, timeSlot: string) => {
+    const allReservations = getReservationsForTimeSlot(date, timeSlot);
+    const roomGroups = new Map();
+    
+    allReservations.forEach(reservation => {
+      const roomKey = reservation.room?.code || 'Sin sala';
+      if (!roomGroups.has(roomKey)) {
+        roomGroups.set(roomKey, []);
+      }
+      roomGroups.get(roomKey).push(reservation);
+    });
+    
+    return roomGroups;
+  };
+
+  const renderSingleRoomWeekView = () => {
+    const weekDays = getWeekDays();
+    const selectedRoomData = rooms.find(r => r.id === selectedRoom);
+    
+    return (
+      <div className="space-y-4">
+        <div className="p-4 bg-accent/30 rounded-lg border">
+          <div className="flex items-center space-x-3">
+            <Building2 className="h-5 w-5 text-primary" />
+            <div>
+              <h3 className="font-semibold text-lg">
+                {selectedRoomData ? `${selectedRoomData.name} (${selectedRoomData.code})` : "Selecciona una sala"}
+              </h3>
+              {selectedRoomData && (
+                <p className="text-sm text-muted-foreground">
+                  Capacidad: {selectedRoomData.capacity} personas • Tipo: {selectedRoomData.room_type}
+                  {selectedRoomData.building && ` • ${selectedRoomData.building.name}`}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {selectedRoom ? (
+          <div className="overflow-x-auto">
+            <div className="min-w-[900px]">
+              {/* Header Row */}
+              <div className="grid grid-cols-8 gap-2 mb-4">
+                <div className="text-sm font-medium text-muted-foreground p-2">
+                  Hora
+                </div>
+                {weekDays.map((day) => (
+                  <div key={day.toISOString()} className="text-sm font-medium text-center p-2">
+                    <div>{format(day, "EEE", { locale: es })}</div>
+                    <div className="text-lg">{format(day, "d")}</div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Time Slots */}
+              {timeSlots.map((time) => (
+                <div key={time} className="grid grid-cols-8 gap-2 mb-2">
+                  <div className="text-sm text-muted-foreground p-2 font-mono border-r">
+                    {time}
+                  </div>
+                  {weekDays.map((day) => {
+                    const dayReservations = getReservationsForTimeSlot(day, time, selectedRoom);
+                    
+                    return (
+                      <div
+                        key={`${day.toISOString()}-${time}`}
+                        className="min-h-[80px] border border-border rounded-md p-1 hover:bg-accent/50 transition-academic relative"
+                      >
+                        {dayReservations.map((reservation) => (
+                          <div
+                            key={reservation.id}
+                            className={`p-2 rounded text-xs font-medium border mb-1 ${getEventColor(reservation.event_type, reservation.status)}`}
+                          >
+                            <div className="font-semibold truncate">{reservation.title}</div>
+                            {reservation.course && (
+                              <div className="text-xs opacity-75 truncate">{reservation.course.code}</div>
+                            )}
+                            <Badge variant="outline" className="text-xs mt-1">
+                              {getStatusLabel(reservation.status)}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Selecciona una sala para ver su agenda</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderAllResourcesWeekView = () => {
     const weekDays = getWeekDays();
     
     return (
-      <div className="overflow-x-auto">
-        <div className="min-w-[900px]">
-          {/* Header Row */}
-          <div className="grid grid-cols-8 gap-2 mb-4">
-            <div className="text-sm font-medium text-muted-foreground p-2">
-              Hora
+      <div className="space-y-4">
+        <div className="p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg border">
+          <div className="flex items-center space-x-3">
+            <Calendar className="h-5 w-5 text-primary" />
+            <div>
+              <h3 className="font-semibold text-lg">Vista General de Recursos</h3>
+              <p className="text-sm text-muted-foreground">
+                Todas las reservas organizadas por sala y horario
+              </p>
             </div>
-            {weekDays.map((day) => (
-              <div key={day.toISOString()} className="text-sm font-medium text-center p-2">
-                <div>{format(day, "EEE", { locale: es })}</div>
-                <div className="text-lg">{format(day, "d")}</div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <div className="min-w-[900px]">
+            {/* Header Row */}
+            <div className="grid grid-cols-8 gap-2 mb-4">
+              <div className="text-sm font-medium text-muted-foreground p-2">
+                Hora
+              </div>
+              {weekDays.map((day) => (
+                <div key={day.toISOString()} className="text-sm font-medium text-center p-2">
+                  <div>{format(day, "EEE", { locale: es })}</div>
+                  <div className="text-lg">{format(day, "d")}</div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Time Slots */}
+            {timeSlots.map((time) => (
+              <div key={time} className="grid grid-cols-8 gap-2 mb-2">
+                <div className="text-sm text-muted-foreground p-2 font-mono border-r">
+                  {time}
+                </div>
+                {weekDays.map((day) => {
+                  const roomReservations = getReservationsByRoom(day, time);
+                  
+                  return (
+                    <div
+                      key={`${day.toISOString()}-${time}`}
+                      className="min-h-[80px] border border-border rounded-md p-1 hover:bg-accent/50 transition-academic relative"
+                    >
+                      {Array.from(roomReservations.entries()).map(([roomCode, reservations]) => (
+                        <div key={roomCode} className="mb-1">
+                          {reservations.map((reservation: Reservation) => (
+                            <div
+                              key={reservation.id}
+                              className={`p-1 rounded text-xs font-medium border mb-1 ${getEventColor(reservation.event_type, reservation.status)}`}
+                            >
+                              <div className="font-semibold truncate text-[10px]">{reservation.title}</div>
+                              <div className="truncate text-[10px]">{roomCode}</div>
+                              {reservation.course && (
+                                <div className="text-[9px] opacity-75 truncate">{reservation.course.code}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
-          
-          {/* Time Slots */}
-          {timeSlots.map((time) => (
-            <div key={time} className="grid grid-cols-8 gap-2 mb-2">
-              <div className="text-sm text-muted-foreground p-2 font-mono border-r">
-                {time}
-              </div>
-              {weekDays.map((day) => {
-                const dayReservations = getReservationsForTimeSlot(day, time);
-                
-                return (
-                  <div
-                    key={`${day.toISOString()}-${time}`}
-                    className="min-h-[80px] border border-border rounded-md p-1 hover:bg-accent/50 transition-academic relative"
-                  >
-                    {dayReservations.map((reservation) => (
-                      <div
-                        key={reservation.id}
-                        className={`p-2 rounded text-xs font-medium border mb-1 ${getEventColor(reservation.event_type, reservation.status)}`}
-                      >
-                        <div className="font-semibold truncate">{reservation.title}</div>
-                        <div className="truncate">{reservation.room?.name}</div>
-                        {reservation.course && (
-                          <div className="text-xs opacity-75 truncate">{reservation.course.code}</div>
-                        )}
-                        <Badge variant="outline" className="text-xs mt-1">
-                          {getStatusLabel(reservation.status)}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
         </div>
       </div>
     );
+  };
+
+  const renderWeekView = () => {
+    return viewType === "single" ? renderSingleRoomWeekView() : renderAllResourcesWeekView();
   };
 
   const renderDayView = () => {
@@ -255,7 +382,9 @@ export function CalendarView() {
       <div className="max-w-2xl mx-auto">
         <div className="space-y-2">
           {timeSlots.map((time) => {
-            const dayReservations = getReservationsForTimeSlot(currentDate, time);
+            const dayReservations = viewType === "single" 
+              ? getReservationsForTimeSlot(currentDate, time, selectedRoom)
+              : getReservationsForTimeSlot(currentDate, time);
             
             return (
               <div key={time} className="flex gap-4">
@@ -312,19 +441,6 @@ export function CalendarView() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Select value={selectedRoom} onValueChange={setSelectedRoom}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filtrar por sala" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las salas</SelectItem>
-              {rooms.map((room) => (
-                <SelectItem key={room.id} value={room.id}>
-                  {room.name} ({room.code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <NewReservationDialog
             trigger={
               <Button variant="gradient" size="sm">
@@ -335,6 +451,55 @@ export function CalendarView() {
           />
         </div>
       </div>
+
+      {/* View Type Selector */}
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={viewType} onValueChange={(value: "single" | "all") => setViewType(value)}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="all" className="flex items-center space-x-2">
+                <Calendar className="h-4 w-4" />
+                <span>Todos los Recursos</span>
+              </TabsTrigger>
+              <TabsTrigger value="single" className="flex items-center space-x-2">
+                <Building2 className="h-4 w-4" />
+                <span>Sala Específica</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="mt-4">
+              {viewType === "single" && (
+                <div className="flex items-center space-x-4">
+                  <label className="text-sm font-medium">Seleccionar Sala:</label>
+                  <Select value={selectedRoom} onValueChange={setSelectedRoom}>
+                    <SelectTrigger className="w-[300px]">
+                      <SelectValue placeholder="Elige una sala" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rooms.map((room) => (
+                        <SelectItem key={room.id} value={room.id}>
+                          <div className="flex flex-col">
+                            <span>{room.name} ({room.code})</span>
+                            <span className="text-xs text-muted-foreground">
+                              {room.building?.name} - Capacidad: {room.capacity}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              {viewType === "all" && (
+                <div className="text-sm text-muted-foreground">
+                  Vista consolidada mostrando todas las reservas organizadas por sala y horario
+                </div>
+              )}
+            </div>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       {/* Calendar Controls */}
       <Card>
