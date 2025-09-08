@@ -59,7 +59,11 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
     equipment_needed: [] as string[],
     notes: "",
     is_recurring: false,
+    recurring_frequency: "weekly" as "daily" | "weekly" | "monthly",
     recurring_days: [] as number[],
+    recurring_end_type: "until" as "until" | "occurrences",
+    recurring_end_date: null as Date | null,
+    recurring_occurrences: 10,
     academic_period_id: ""
   });
 
@@ -85,6 +89,17 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
     { value: 5, label: "Viernes" },
     { value: 6, label: "Sábado" },
     { value: 0, label: "Domingo" }
+  ];
+
+  const frequencyOptions = [
+    { value: "daily", label: "Diariamente" },
+    { value: "weekly", label: "Semanalmente" },
+    { value: "monthly", label: "Mensualmente" }
+  ];
+
+  const endTypeOptions = [
+    { value: "until", label: "Hasta fecha específica" },
+    { value: "occurrences", label: "Número de ocurrencias" }
   ];
 
   useEffect(() => {
@@ -176,19 +191,39 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
 
       if (error) throw error;
 
-      // If recurring, create schedule template
-      if (formData.is_recurring && formData.course_id && formData.recurring_days.length > 0) {
-        const templatePromises = formData.recurring_days.map(day => 
-          supabase.from('schedule_templates').insert([{
-            course_id: formData.course_id,
-            room_id: formData.room_id,
-            day_of_week: day,
-            start_time: formData.start_time,
-            end_time: formData.end_time,
-            event_type: formData.event_type
-          }])
-        );
-        await Promise.all(templatePromises);
+      // If recurring, create multiple reservations
+      if (formData.is_recurring) {
+        const reservations = generateRecurringReservations();
+        
+        // Create all recurring reservations
+        for (const reservation of reservations) {
+          const { error: recurringError } = await supabase
+            .from('reservations')
+            .insert({
+              ...reservationData,
+              start_datetime: reservation.start_datetime,
+              end_datetime: reservation.end_datetime
+            });
+          
+          if (recurringError) {
+            console.error('Error creating recurring reservation:', recurringError);
+          }
+        }
+
+        // Also create schedule template if course is selected
+        if (formData.course_id && formData.recurring_days.length > 0) {
+          const templatePromises = formData.recurring_days.map(day => 
+            supabase.from('schedule_templates').insert([{
+              course_id: formData.course_id,
+              room_id: formData.room_id,
+              day_of_week: day,
+              start_time: formData.start_time,
+              end_time: formData.end_time,
+              event_type: formData.event_type
+            }])
+          );
+          await Promise.all(templatePromises);
+        }
       }
 
       toast({
@@ -210,7 +245,11 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
         equipment_needed: [],
         notes: "",
         is_recurring: false,
+        recurring_frequency: "weekly",
         recurring_days: [],
+        recurring_end_type: "until",
+        recurring_end_date: null,
+        recurring_occurrences: 10,
         academic_period_id: ""
       });
     } catch (error) {
@@ -223,6 +262,60 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
     } finally {
       setLoading(false);
     }
+  };
+
+  const generateRecurringReservations = () => {
+    if (!formData.date || !formData.is_recurring) return [];
+    
+    const reservations = [];
+    let currentDate = new Date(formData.date);
+    const maxIterations = formData.recurring_end_type === "occurrences" 
+      ? formData.recurring_occurrences 
+      : 365; // Max 1 year if no end date
+    
+    for (let i = 0; i < maxIterations; i++) {
+      // Check if we've passed the end date
+      if (formData.recurring_end_type === "until" && formData.recurring_end_date) {
+        if (currentDate > formData.recurring_end_date) break;
+      }
+      
+      let shouldAddReservation = false;
+      
+      if (formData.recurring_frequency === "daily") {
+        shouldAddReservation = true;
+      } else if (formData.recurring_frequency === "weekly") {
+        shouldAddReservation = formData.recurring_days.includes(currentDate.getDay());
+      } else if (formData.recurring_frequency === "monthly") {
+        // For monthly, create on the same day of the month
+        shouldAddReservation = currentDate.getDate() === formData.date.getDate();
+      }
+      
+      if (shouldAddReservation && i > 0) { // Skip first occurrence since it's already created
+        const startDateTime = new Date(currentDate);
+        const [startHour, startMinute] = formData.start_time.split(':');
+        startDateTime.setHours(parseInt(startHour), parseInt(startMinute));
+        
+        const endDateTime = new Date(currentDate);
+        const [endHour, endMinute] = formData.end_time.split(':');
+        endDateTime.setHours(parseInt(endHour), parseInt(endMinute));
+        
+        reservations.push({
+          start_datetime: startDateTime.toISOString(),
+          end_datetime: endDateTime.toISOString()
+        });
+      }
+      
+      // Move to next occurrence
+      if (formData.recurring_frequency === "daily") {
+        currentDate.setDate(currentDate.getDate() + 1);
+      } else if (formData.recurring_frequency === "weekly") {
+        currentDate.setDate(currentDate.getDate() + 1); // Check each day
+      } else if (formData.recurring_frequency === "monthly") {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+      }
+    }
+    
+    return reservations;
   };
 
   return (
@@ -417,50 +510,159 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
           </div>
 
           {/* Recurring Schedule */}
-          {formData.course_id && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="is_recurring"
-                  checked={formData.is_recurring}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_recurring: !!checked })}
-                />
-                <Label htmlFor="is_recurring">Horario recurrente (para el semestre)</Label>
-              </div>
-
-              {formData.is_recurring && (
-                <div>
-                  <Label>Días de la semana</Label>
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {weekDays.map((day) => (
-                      <div key={day.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`day-${day.value}`}
-                          checked={formData.recurring_days.includes(day.value)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setFormData({
-                                ...formData,
-                                recurring_days: [...formData.recurring_days, day.value]
-                              });
-                            } else {
-                              setFormData({
-                                ...formData,
-                                recurring_days: formData.recurring_days.filter(d => d !== day.value)
-                              });
-                            }
-                          }}
-                        />
-                        <Label htmlFor={`day-${day.value}`} className="text-sm">
-                          {day.label}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_recurring"
+                checked={formData.is_recurring}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_recurring: !!checked })}
+              />
+              <Label htmlFor="is_recurring">Evento recurrente</Label>
             </div>
-          )}
+
+            {formData.is_recurring && (
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                {/* Frequency Selection */}
+                <div>
+                  <Label>Frecuencia</Label>
+                  <Select 
+                    value={formData.recurring_frequency} 
+                    onValueChange={(value: any) => setFormData({ 
+                      ...formData, 
+                      recurring_frequency: value,
+                      recurring_days: value === "daily" ? [] : formData.recurring_days
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {frequencyOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Days Selection for Weekly */}
+                {formData.recurring_frequency === "weekly" && (
+                  <div>
+                    <Label>Días de la semana</Label>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {weekDays.map((day) => (
+                        <div key={day.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`day-${day.value}`}
+                            checked={formData.recurring_days.includes(day.value)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData({
+                                  ...formData,
+                                  recurring_days: [...formData.recurring_days, day.value]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  recurring_days: formData.recurring_days.filter(d => d !== day.value)
+                                });
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`day-${day.value}`} className="text-sm">
+                            {day.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* End Condition */}
+                <div className="space-y-3">
+                  <Label>Finalizar</Label>
+                  <Select 
+                    value={formData.recurring_end_type} 
+                    onValueChange={(value: any) => setFormData({ ...formData, recurring_end_type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {endTypeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {formData.recurring_end_type === "until" && (
+                    <div>
+                      <Label>Fecha límite</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !formData.recurring_end_date && "text-muted-foreground"
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {formData.recurring_end_date ? format(formData.recurring_end_date, "PPP") : "Seleccionar fecha límite"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <CalendarComponent
+                            mode="single"
+                            selected={formData.recurring_end_date}
+                            onSelect={(date) => setFormData({ ...formData, recurring_end_date: date })}
+                            initialFocus
+                            disabled={(date) => date < new Date()}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+
+                  {formData.recurring_end_type === "occurrences" && (
+                    <div>
+                      <Label htmlFor="occurrences">Número de ocurrencias</Label>
+                      <Input
+                        id="occurrences"
+                        type="number"
+                        value={formData.recurring_occurrences}
+                        onChange={(e) => setFormData({ ...formData, recurring_occurrences: parseInt(e.target.value) || 1 })}
+                        min="1"
+                        max="365"
+                        placeholder="10"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Preview */}
+                {(formData.recurring_frequency === "daily" || 
+                  (formData.recurring_frequency === "weekly" && formData.recurring_days.length > 0) ||
+                  formData.recurring_frequency === "monthly") && (
+                  <div className="text-sm text-muted-foreground bg-background p-2 rounded border">
+                    <AlertCircle className="h-4 w-4 inline mr-1" />
+                    <strong>Vista previa:</strong> Se crearán reservas {
+                      formData.recurring_frequency === "daily" ? "diariamente" :
+                      formData.recurring_frequency === "weekly" ? `cada ${formData.recurring_days.map(d => weekDays.find(wd => wd.value === d)?.label).join(", ")}` :
+                      "mensualmente"
+                    } {
+                      formData.recurring_end_type === "until" && formData.recurring_end_date 
+                        ? `hasta el ${format(formData.recurring_end_date, "dd/MM/yyyy")}`
+                        : `por ${formData.recurring_occurrences} ocurrencias`
+                    }
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Notes */}
           <div>
