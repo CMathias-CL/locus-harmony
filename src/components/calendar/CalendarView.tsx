@@ -53,17 +53,17 @@ const getEventColor = (type: string, status: string) => {
   
   switch (type) {
     case "class":
-      return "bg-primary/20 border-primary text-primary dark:text-primary-foreground";
+      return "bg-[hsl(var(--event-class))]/20 border-[hsl(var(--event-class))] text-[hsl(var(--event-class))] dark:text-[hsl(var(--event-class-foreground))]";
     case "lab":
-      return "bg-success/20 border-success text-success dark:text-success-foreground";
+      return "bg-[hsl(var(--event-lab))]/20 border-[hsl(var(--event-lab))] text-[hsl(var(--event-lab))] dark:text-[hsl(var(--event-lab-foreground))]";
     case "seminar":
-      return "bg-purple-500/20 border-purple-500 text-purple-700 dark:text-purple-300";
+      return "bg-[hsl(var(--event-seminar))]/20 border-[hsl(var(--event-seminar))] text-[hsl(var(--event-seminar))] dark:text-[hsl(var(--event-seminar-foreground))]";
     case "exam":
-      return "bg-orange-500/20 border-orange-500 text-orange-700 dark:text-orange-300";
+      return "bg-[hsl(var(--event-exam))]/20 border-[hsl(var(--event-exam))] text-[hsl(var(--event-exam))] dark:text-[hsl(var(--event-exam-foreground))]";
     case "meeting":
-      return "bg-blue-500/20 border-blue-500 text-blue-700 dark:text-blue-300";
+      return "bg-[hsl(var(--event-meeting))]/20 border-[hsl(var(--event-meeting))] text-[hsl(var(--event-meeting))] dark:text-[hsl(var(--event-meeting-foreground))]";
     case "event":
-      return "bg-indigo-500/20 border-indigo-500 text-indigo-700 dark:text-indigo-300";
+      return "bg-[hsl(var(--event-event))]/20 border-[hsl(var(--event-event))] text-[hsl(var(--event-event))] dark:text-[hsl(var(--event-event-foreground))]";
     default:
       return "bg-muted border-border text-muted-foreground";
   }

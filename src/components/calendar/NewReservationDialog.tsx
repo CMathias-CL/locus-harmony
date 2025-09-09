@@ -153,18 +153,28 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
       const [endHour, endMinute] = formData.end_time.split(':');
       endDateTime.setHours(parseInt(endHour), parseInt(endMinute));
 
-      // Check for conflicts
+      // Check for conflicts - more precise overlap detection
       const { data: conflicts } = await supabase
         .from('reservations')
-        .select('id')
+        .select('id, title, start_datetime, end_datetime')
         .eq('room_id', formData.room_id)
-        .eq('status', 'confirmed')
-        .or(`start_datetime.lte.${endDateTime.toISOString()},end_datetime.gte.${startDateTime.toISOString()}`);
+        .in('status', ['confirmed', 'pending'])
+        .or(`and(start_datetime.lt.${endDateTime.toISOString()},end_datetime.gt.${startDateTime.toISOString()})`);
 
       if (conflicts && conflicts.length > 0) {
+        const conflictInfo = conflicts[0];
+        const conflictStart = new Date(conflictInfo.start_datetime).toLocaleTimeString('es-ES', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        const conflictEnd = new Date(conflictInfo.end_datetime).toLocaleTimeString('es-ES', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        
         toast({
           title: "Conflicto de horario",
-          description: "La sala ya está reservada en ese horario.",
+          description: `La sala ya está reservada de ${conflictStart} a ${conflictEnd} (${conflictInfo.title}).`,
           variant: "destructive",
         });
         setLoading(false);
