@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, addDays, startOfWeek, endOfWeek, addWeeks, subWeeks } from "date-fns";
 import { es } from "date-fns/locale";
 import { NewReservationDialog } from "./NewReservationDialog";
+import { ReservationDetailsDialog } from "./ReservationDetailsDialog";
 
 interface Reservation {
   id: string;
@@ -98,6 +99,8 @@ export function CalendarView() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchRooms();
@@ -272,7 +275,8 @@ export function CalendarView() {
                         {dayReservations.map((reservation) => (
                           <div
                             key={reservation.id}
-                            className={`p-2 rounded text-xs font-medium border mb-1 ${getEventColor(reservation.event_type, reservation.status)}`}
+                            className={`p-2 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getEventColor(reservation.event_type, reservation.status)}`}
+                            onClick={() => handleReservationClick(reservation)}
                           >
                             <div className="font-semibold truncate">{reservation.title}</div>
                             {reservation.course && (
@@ -351,7 +355,8 @@ export function CalendarView() {
                           {reservations.map((reservation: Reservation) => (
                             <div
                               key={reservation.id}
-                              className={`p-1 rounded text-xs font-medium border mb-1 ${getEventColor(reservation.event_type, reservation.status)}`}
+                              className={`p-1 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getEventColor(reservation.event_type, reservation.status)}`}
+                              onClick={() => handleReservationClick(reservation)}
                             >
                               <div className="font-semibold truncate text-[10px]">{reservation.title}</div>
                               <div className="truncate text-[10px]">{roomCode}</div>
@@ -395,7 +400,8 @@ export function CalendarView() {
                   {dayReservations.map((reservation) => (
                     <div
                       key={reservation.id}
-                      className={`p-3 rounded text-sm font-medium border mb-2 ${getEventColor(reservation.event_type, reservation.status)}`}
+                      className={`p-3 rounded text-sm font-medium border mb-2 cursor-pointer hover:opacity-80 transition-academic ${getEventColor(reservation.event_type, reservation.status)}`}
+                      onClick={() => handleReservationClick(reservation)}
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -430,8 +436,17 @@ export function CalendarView() {
     );
   };
 
+  const handleReservationClick = (reservation: Reservation) => {
+    setSelectedReservation(reservation);
+    setDetailsDialogOpen(true);
+  };
+
+  const handleReservationUpdated = () => {
+    fetchReservations();
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6">{/* ... keep existing code ... */}
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <div>
@@ -586,6 +601,14 @@ export function CalendarView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Reservation Details Dialog */}
+      <ReservationDetailsDialog
+        reservation={selectedReservation}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        onReservationUpdated={handleReservationUpdated}
+      />
     </div>
   );
 }
