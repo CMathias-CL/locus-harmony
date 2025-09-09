@@ -182,7 +182,8 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
         attendee_count: parseInt(formData.attendee_count) || 0,
         equipment_needed: formData.equipment_needed as any,
         notes: formData.notes,
-        status: 'pending' as "pending" | "confirmed" | "cancelled" | "completed"
+        status: 'pending' as "pending" | "confirmed" | "cancelled" | "completed",
+        created_by: '00000000-0000-0000-0000-000000000000' // Development user ID
       };
 
       const { data: newReservation, error } = await supabase
