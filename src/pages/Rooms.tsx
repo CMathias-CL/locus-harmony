@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, MapPin, Users, Monitor, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AddRoomDialog } from "@/components/rooms/AddRoomDialog";
+import { supabase } from "@/integrations/supabase/client";
 
-const rooms = [
+const mockRooms = [
   {
     id: 1,
     name: "Aula 101",
@@ -82,10 +84,10 @@ const getStatusBadge = (status: string) => {
           Ocupada
         </Badge>
       );
-    case "reserved":
+    case "blocked":
       return (
         <Badge variant="outline" className="border-warning text-warning">
-          Reservada
+          Bloqueada
         </Badge>
       );
     case "maintenance":
@@ -102,13 +104,13 @@ const getStatusBadge = (status: string) => {
 const getStatusDetails = (room: any) => {
   switch (room.status) {
     case "available":
-      return room.nextReservation ? `Próxima reserva: ${room.nextReservation}` : "Sin reservas pendientes";
+      return "Sin reservas activas";
     case "occupied":
-      return `Clase actual: ${room.currentClass}`;
-    case "reserved":
-      return `Reservada para: ${room.reservedBy}`;
+      return "Actualmente ocupada";
+    case "blocked":
+      return "Bloqueada temporalmente";
     case "maintenance":
-      return `Mantenimiento hasta: ${room.maintenanceUntil}`;
+      return "En mantenimiento";
     default:
       return "";
   }
@@ -117,15 +119,39 @@ const getStatusDetails = (room: any) => {
 export default function Rooms() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRooms = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setRooms(data || []);
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+      // Keep mock data as fallback
+      setRooms(mockRooms);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRooms();
+  }, []);
 
   const filteredRooms = rooms.filter((room) => {
     const matchesSearch = room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         room.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "all" || room.type === filterType;
+                         (room.location && room.location.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesType = filterType === "all" || room.room_type === filterType;
     return matchesSearch && matchesType;
   });
 
-  const roomTypes = ["all", ...Array.from(new Set(rooms.map(room => room.type)))];
+  const roomTypes = ["all", ...Array.from(new Set(rooms.map(room => room.room_type).filter(Boolean)))];
 
   return (
     <div className="p-6 space-y-6">
@@ -137,10 +163,7 @@ export default function Rooms() {
             Administra espacios y consulta disponibilidad
           </p>
         </div>
-        <Button variant="gradient">
-          <Plus className="w-4 h-4 mr-2" />
-          Agregar Sala
-        </Button>
+        <AddRoomDialog onRoomAdded={fetchRooms} />
       </div>
 
       {/* Filters */}
@@ -195,9 +218,9 @@ export default function Rooms() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-warning">
-              {rooms.filter(r => r.status === "reserved").length}
+              {rooms.filter(r => r.status === "blocked").length}
             </div>
-            <p className="text-xs text-muted-foreground">Salas Reservadas</p>
+            <p className="text-xs text-muted-foreground">Salas Bloqueadas</p>
           </CardContent>
         </Card>
         <Card>
@@ -221,12 +244,12 @@ export default function Rooms() {
               </div>
               <div className="flex items-center text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4 mr-1" />
-                {room.location}
+                Piso {room.floor}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{room.type}</span>
+                <span className="text-sm font-medium">{room.room_type}</span>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Users className="w-4 h-4 mr-1" />
                   {room.capacity} personas
@@ -236,8 +259,8 @@ export default function Rooms() {
               <div className="space-y-2">
                 <p className="text-sm font-medium">Características:</p>
                 <div className="flex flex-wrap gap-1">
-                  {room.features.map((feature) => (
-                    <Badge key={feature} variant="secondary" className="text-xs">
+                  {Array.isArray(room.features) && room.features.map((feature: string, index: number) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
                       {feature}
                     </Badge>
                   ))}
