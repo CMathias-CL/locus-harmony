@@ -47,22 +47,22 @@ const timeSlots = [
 ];
 
 const getEventColor = (type: string, status: string) => {
-  if (status === "pending") return "bg-warning/20 border-warning text-warning-foreground";
-  if (status === "cancelled") return "bg-destructive/20 border-destructive text-destructive-foreground";
+  if (status === "pending") return "bg-warning/20 border-warning text-warning dark:text-warning-foreground";
+  if (status === "cancelled") return "bg-destructive/20 border-destructive text-destructive dark:text-destructive-foreground";
   
   switch (type) {
     case "class":
-      return "bg-primary/20 border-primary text-primary-foreground";
+      return "bg-primary/20 border-primary text-primary dark:text-primary-foreground";
     case "lab":
-      return "bg-success/20 border-success text-success-foreground";
+      return "bg-success/20 border-success text-success dark:text-success-foreground";
     case "seminar":
-      return "bg-purple-500/20 border-purple-500 text-purple-700";
+      return "bg-purple-500/20 border-purple-500 text-purple-700 dark:text-purple-300";
     case "exam":
-      return "bg-orange-500/20 border-orange-500 text-orange-700";
+      return "bg-orange-500/20 border-orange-500 text-orange-700 dark:text-orange-300";
     case "meeting":
-      return "bg-blue-500/20 border-blue-500 text-blue-700";
+      return "bg-blue-500/20 border-blue-500 text-blue-700 dark:text-blue-300";
     case "event":
-      return "bg-indigo-500/20 border-indigo-500 text-indigo-700";
+      return "bg-indigo-500/20 border-indigo-500 text-indigo-700 dark:text-indigo-300";
     default:
       return "bg-muted border-border text-muted-foreground";
   }
