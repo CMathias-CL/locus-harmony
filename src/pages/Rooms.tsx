@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AddRoomDialog } from "@/components/rooms/AddRoomDialog";
+import { NewReservationDialog } from "@/components/calendar/NewReservationDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 const mockRooms = [
@@ -278,9 +279,13 @@ export default function Rooms() {
                   Ver Detalles
                 </Button>
                 {room.status === "available" && (
-                  <Button variant="default" size="sm" className="flex-1">
-                    Reservar
-                  </Button>
+                  <NewReservationDialog
+                    trigger={
+                      <Button variant="default" size="sm" className="flex-1">
+                        Reservar
+                      </Button>
+                    }
+                  />
                 )}
               </div>
             </CardContent>
