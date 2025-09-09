@@ -181,9 +181,6 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
         return;
       }
 
-      // Generate a recurring template ID if this is recurring
-      const recurringTemplateId = formData.is_recurring ? crypto.randomUUID() : null;
-
       const reservationData = {
         title: formData.title,
         description: formData.description,
@@ -196,8 +193,7 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
         equipment_needed: formData.equipment_needed as any,
         notes: formData.notes,
         status: 'pending' as "pending" | "confirmed" | "cancelled" | "completed",
-        created_by: '00000000-0000-0000-0000-000000000000', // Development user ID
-        recurring_template_id: recurringTemplateId
+        created_by: '00000000-0000-0000-0000-000000000000' // Development user ID
       };
 
       const { data: newReservation, error } = await supabase
@@ -225,6 +221,9 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
       if (formData.is_recurring) {
         const reservations = generateRecurringReservations();
         
+        // Generate a unique recurring template ID for all related reservations
+        const recurringTemplateId = crypto.randomUUID();
+        
         // Create all recurring reservations with the same template ID
         for (const reservation of reservations) {
           // Check for conflicts for each recurring reservation
@@ -249,6 +248,16 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
               console.error('Error creating recurring reservation:', recurringError);
             }
           }
+        }
+
+        // Update the first reservation with the recurring template ID
+        const { error: updateError } = await supabase
+          .from('reservations')
+          .update({ recurring_template_id: recurringTemplateId })
+          .eq('id', newReservation.id);
+
+        if (updateError) {
+          console.error('Error updating first reservation with template ID:', updateError);
         }
 
         // Also create schedule template if course is selected
