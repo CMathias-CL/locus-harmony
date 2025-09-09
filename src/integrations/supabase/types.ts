@@ -316,13 +316,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reservations_recurring_template_id_fkey"
-            columns: ["recurring_template_id"]
-            isOneToOne: false
-            referencedRelation: "schedule_templates"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "reservations_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false

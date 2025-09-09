@@ -278,7 +278,9 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
 
       toast({
         title: "Reserva creada",
-        description: "La reserva se ha creado exitosamente.",
+        description: formData.is_recurring 
+          ? `Se han creado ${1 + (formData.is_recurring ? generateRecurringReservations().length : 0)} reservas (1 inicial + ${generateRecurringReservations().length} recurrentes)`
+          : "La reserva se ha creado exitosamente.",
       });
 
       setOpen(false);
@@ -317,30 +319,59 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
   const generateRecurringReservations = () => {
     if (!formData.date || !formData.is_recurring) return [];
     
+    console.log('Generating recurring reservations with:', {
+      frequency: formData.recurring_frequency,
+      days: formData.recurring_days,
+      endType: formData.recurring_end_type,
+      endDate: formData.recurring_end_date,
+      occurrences: formData.recurring_occurrences
+    });
+    
     const reservations = [];
     let currentDate = new Date(formData.date);
     const maxIterations = formData.recurring_end_type === "occurrences" 
       ? formData.recurring_occurrences 
       : 365; // Max 1 year if no end date
     
-    for (let i = 0; i < maxIterations; i++) {
+    let addedCount = 0;
+    
+    for (let i = 1; i < maxIterations && addedCount < 50; i++) { // Start from 1 since first is already created
+      // Move to next occurrence based on frequency
+      if (formData.recurring_frequency === "daily") {
+        currentDate = new Date(formData.date);
+        currentDate.setDate(currentDate.getDate() + i);
+      } else if (formData.recurring_frequency === "weekly") {
+        // For weekly, we need to check each day after the initial date
+        currentDate = new Date(formData.date);
+        currentDate.setDate(currentDate.getDate() + i);
+      } else if (formData.recurring_frequency === "monthly") {
+        currentDate = new Date(formData.date);
+        currentDate.setMonth(currentDate.getMonth() + i);
+      }
+      
       // Check if we've passed the end date
       if (formData.recurring_end_type === "until" && formData.recurring_end_date) {
         if (currentDate > formData.recurring_end_date) break;
       }
       
+      // Check if we should add this reservation
       let shouldAddReservation = false;
       
       if (formData.recurring_frequency === "daily") {
         shouldAddReservation = true;
       } else if (formData.recurring_frequency === "weekly") {
-        shouldAddReservation = formData.recurring_days.includes(currentDate.getDay());
+        // If no specific days selected, use the same day of week as original
+        if (formData.recurring_days.length === 0) {
+          shouldAddReservation = currentDate.getDay() === formData.date.getDay();
+        } else {
+          shouldAddReservation = formData.recurring_days.includes(currentDate.getDay());
+        }
       } else if (formData.recurring_frequency === "monthly") {
         // For monthly, create on the same day of the month
         shouldAddReservation = currentDate.getDate() === formData.date.getDate();
       }
       
-      if (shouldAddReservation && i > 0) { // Skip first occurrence since it's already created
+      if (shouldAddReservation) {
         const startDateTime = new Date(currentDate);
         const [startHour, startMinute] = formData.start_time.split(':');
         startDateTime.setHours(parseInt(startHour), parseInt(startMinute));
@@ -353,18 +384,17 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
           start_datetime: startDateTime.toISOString(),
           end_datetime: endDateTime.toISOString()
         });
-      }
-      
-      // Move to next occurrence
-      if (formData.recurring_frequency === "daily") {
-        currentDate.setDate(currentDate.getDate() + 1);
-      } else if (formData.recurring_frequency === "weekly") {
-        currentDate.setDate(currentDate.getDate() + 1); // Check each day
-      } else if (formData.recurring_frequency === "monthly") {
-        currentDate.setMonth(currentDate.getMonth() + 1);
+        
+        addedCount++;
+        
+        // If we have enough occurrences, stop
+        if (formData.recurring_end_type === "occurrences" && addedCount >= formData.recurring_occurrences - 1) {
+          break;
+        }
       }
     }
     
+    console.log(`Generated ${reservations.length} recurring reservations`);
     return reservations;
   };
 
