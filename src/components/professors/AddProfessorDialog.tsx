@@ -76,15 +76,13 @@ export function AddProfessorDialog({ onProfessorAdded }: AddProfessorDialogProps
 
   const positions = [
     "Profesor Titular",
-    "Profesor Asociado", 
-    "Profesor Asistente",
+    "Profesor Asociado",
+    "Profesor Asistente", 
     "Profesor Instructor",
-    "Ayudante",
+    "Ayudante de Cátedra",
     "Profesor Visitante",
     "Profesor Emérito",
-    "Catedrático",
-    "Docente",
-    "Investigador"
+    "Docente de Hora"
   ];
 
   const onSubmit = async (data: ProfessorFormData) => {
@@ -185,31 +183,6 @@ export function AddProfessorDialog({ onProfessorAdded }: AddProfessorDialogProps
 
             <FormField
               control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Departamento (Opcional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona departamento" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="position"
               render={({ field }) => (
                 <FormItem>
@@ -224,6 +197,31 @@ export function AddProfessorDialog({ onProfessorAdded }: AddProfessorDialogProps
                       {positions.map((pos) => (
                         <SelectItem key={pos} value={pos}>
                           {pos}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Departamento (Opcional)</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona departamento" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
                         </SelectItem>
                       ))}
                     </SelectContent>
