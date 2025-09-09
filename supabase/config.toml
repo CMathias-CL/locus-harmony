@@ -1,1 +1,20 @@
 project_id = "qwdljgtdlqrjgypkjgih"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+port = 54322
+external_url = "https://qwdljgtdlqrjgypkjgih.supabase.co"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+refresh_token_rotation_enabled = true
+security_update_password_require_reauthentication = true
+
+[functions.send-notification-emails]
+verify_jwt = false

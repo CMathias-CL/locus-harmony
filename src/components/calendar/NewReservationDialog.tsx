@@ -185,11 +185,26 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
         status: 'pending' as "pending" | "confirmed" | "cancelled" | "completed"
       };
 
-      const { error } = await supabase
+      const { data: newReservation, error } = await supabase
         .from('reservations')
-        .insert(reservationData);
+        .insert(reservationData)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Send email notifications for the new reservation
+      try {
+        await supabase.functions.invoke('send-notification-emails', {
+          body: {
+            reservationId: newReservation.id,
+            eventType: 'created'
+          }
+        });
+      } catch (emailError) {
+        console.error('Error sending email notifications:', emailError);
+        // Don't fail the reservation creation if emails fail
+      }
 
       // If recurring, create multiple reservations
       if (formData.is_recurring) {
