@@ -12,6 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
+  GraduationCap,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,6 +23,8 @@ const menuItems = [
   { title: "Calendario", icon: Calendar, href: "/calendar" },
   { title: "Salas", icon: Building2, href: "/rooms" },
   { title: "Cursos", icon: BookOpen, href: "/courses" },
+  { title: "Profesores", icon: GraduationCap, href: "/professors" },
+  { title: "Períodos", icon: CalendarDays, href: "/academic-periods" },
   { title: "Usuarios", icon: Users, href: "/users" },
   { title: "Reportes", icon: BarChart3, href: "/reports" },
   { title: "Configuración", icon: Settings, href: "/settings" },
