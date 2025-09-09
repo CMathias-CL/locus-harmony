@@ -474,13 +474,16 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
             <div>
               <Label>Curso *</Label>
               <Select value={formData.course_id} onValueChange={(value) => setFormData({ ...formData, course_id: value })}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-background">
                   <SelectValue placeholder="Seleccionar curso" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border border-border shadow-lg z-50">
                   {courses.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.name} ({course.code})
+                    <SelectItem key={course.id} value={course.id} className="hover:bg-accent">
+                      <div className="flex flex-col">
+                        <span className="font-medium">{course.name}</span>
+                        <span className="text-sm text-muted-foreground">{course.code}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
