@@ -135,8 +135,8 @@ export function AddCourseDialog({ onCourseAdded }: AddCourseDialogProps) {
           credits: data.credits,
           max_students: data.max_students,
           description: data.description || null,
-          professor_id: data.professor_id || null,
-          academic_period_id: data.academic_period_id || null,
+          professor_id: data.professor_id === "unassigned" ? null : data.professor_id || null,
+          academic_period_id: data.academic_period_id === "none" ? null : data.academic_period_id || null,
         });
 
       if (error) throw error;
@@ -245,7 +245,7 @@ export function AddCourseDialog({ onCourseAdded }: AddCourseDialogProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Sin asignar</SelectItem>
+                        <SelectItem value="unassigned">Sin asignar</SelectItem>
                         {professors.map((professor) => (
                           <SelectItem key={professor.id} value={professor.id}>
                             {professor.full_name} - {professor.department}
@@ -299,7 +299,7 @@ export function AddCourseDialog({ onCourseAdded }: AddCourseDialogProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Sin período</SelectItem>
+                        <SelectItem value="none">Sin período</SelectItem>
                         {academicPeriods.map((period) => (
                           <SelectItem key={period.id} value={period.id}>
                             {period.name} ({period.period_type})
