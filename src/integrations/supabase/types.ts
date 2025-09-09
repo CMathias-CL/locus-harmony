@@ -226,7 +226,7 @@ export type Database = {
           department?: string | null
           email: string
           full_name: string
-          id: string
+          id?: string
           phone?: string | null
           position?: string | null
           role?: Database["public"]["Enums"]["user_role"]

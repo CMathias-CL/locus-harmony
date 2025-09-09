@@ -93,7 +93,7 @@ export function AddProfessorDialog({ onProfessorAdded }: AddProfessorDialogProps
         .insert({
           full_name: data.full_name,
           email: data.email,
-          role: "professor",
+          role: "professor" as const,
           phone: data.phone || null,
           department: data.department || null,
           position: data.position,
