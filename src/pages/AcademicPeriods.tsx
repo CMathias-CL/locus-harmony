@@ -13,15 +13,10 @@ import { es } from "date-fns/locale";
 interface AcademicPeriod {
   id: string;
   name: string;
-  period_type: 'semester' | 'trimester' | 'quarter' | 'annual';
   start_date: string;
   end_date: string;
-  enrollment_start?: string;
-  enrollment_end?: string;
-  max_courses_per_student?: number;
+  period_type: "semester" | "trimester" | "quarter" | "module";
   is_active: boolean;
-  is_current?: boolean;
-  description?: string;
   created_at: string;
   updated_at: string;
 }
@@ -61,38 +56,28 @@ export default function AcademicPeriods() {
 
   const filteredPeriods = periods.filter((period) => {
     const matchesSearch = 
-      period.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      period.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      period.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || period.period_type === filterType;
     const matchesStatus = filterStatus === "all" || 
       (filterStatus === "active" && period.is_active) ||
-      (filterStatus === "inactive" && !period.is_active) ||
-      (filterStatus === "current" && period.is_current);
+      (filterStatus === "inactive" && !period.is_active);
     return matchesSearch && matchesType && matchesStatus;
   });
 
-  const periodTypes = ["all", "semester", "trimester", "quarter", "annual"];
-  const statusFilters = ["all", "active", "inactive", "current"];
+  const periodTypes = ["all", "semester", "trimester", "quarter", "module"];
+  const statusFilters = ["all", "active", "inactive"];
 
   const getPeriodTypeLabel = (type: string) => {
     const labels = {
       semester: "Semestre",
       trimester: "Trimestre", 
       quarter: "Cuatrimestre",
-      annual: "Anual"
+      module: "Módulo"
     };
     return labels[type as keyof typeof labels] || type;
   };
 
   const getStatusBadge = (period: AcademicPeriod) => {
-    if (period.is_current) {
-      return (
-        <Badge variant="outline" className="border-primary text-primary">
-          <Clock className="w-3 h-3 mr-1" />
-          Actual
-        </Badge>
-      );
-    }
     if (period.is_active) {
       return (
         <Badge variant="outline" className="border-success text-success">
@@ -109,13 +94,6 @@ export default function AcademicPeriods() {
     );
   };
 
-  const isEnrollmentOpen = (period: AcademicPeriod) => {
-    if (!period.enrollment_start || !period.enrollment_end) return false;
-    const now = new Date();
-    const enrollmentStart = new Date(period.enrollment_start);
-    const enrollmentEnd = new Date(period.enrollment_end);
-    return now >= enrollmentStart && now <= enrollmentEnd;
-  };
 
   const toggleActivePeriod = async (periodId: string, currentStatus: boolean) => {
     try {
@@ -202,8 +180,7 @@ export default function AcademicPeriods() {
                   onClick={() => setFilterStatus(status)}
                 >
                   {status === "all" ? "Todos" : 
-                   status === "active" ? "Activos" :
-                   status === "inactive" ? "Inactivos" : "Actual"}
+                   status === "active" ? "Activos" : "Inactivos"}
                 </Button>
               ))}
             </div>
@@ -212,7 +189,7 @@ export default function AcademicPeriods() {
       </Card>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-primary">
@@ -231,18 +208,10 @@ export default function AcademicPeriods() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-warning">
-              {periods.filter(p => p.is_current).length}
-            </div>
-            <p className="text-xs text-muted-foreground">Período Actual</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
             <div className="text-2xl font-bold text-muted-foreground">
-              {periods.filter(p => isEnrollmentOpen(p)).length}
+              {periodTypes.length - 1}
             </div>
-            <p className="text-xs text-muted-foreground">Inscripciones Abiertas</p>
+            <p className="text-xs text-muted-foreground">Tipos de Período</p>
           </CardContent>
         </Card>
       </div>
@@ -261,11 +230,6 @@ export default function AcademicPeriods() {
                 </div>
                 <div className="flex flex-col gap-1 items-end">
                   {getStatusBadge(period)}
-                  {isEnrollmentOpen(period) && (
-                    <Badge variant="outline" className="border-blue-500 text-blue-700">
-                      Inscripciones Abiertas
-                    </Badge>
-                  )}
                 </div>
               </div>
             </CardHeader>
@@ -281,31 +245,6 @@ export default function AcademicPeriods() {
                   {format(new Date(period.end_date), "dd MMM yyyy", { locale: es })}
                 </p>
               </div>
-
-              {/* Enrollment Dates */}
-              {period.enrollment_start && period.enrollment_end && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Inscripciones:</p>
-                  <p className="text-sm text-muted-foreground ml-6">
-                    {format(new Date(period.enrollment_start), "dd MMM yyyy", { locale: es })} - {" "}
-                    {format(new Date(period.enrollment_end), "dd MMM yyyy", { locale: es })}
-                  </p>
-                </div>
-              )}
-
-              {/* Max Courses */}
-              {period.max_courses_per_student && (
-                <div className="text-sm">
-                  <span className="font-medium">Máx. cursos por estudiante:</span> {period.max_courses_per_student}
-                </div>
-              )}
-
-              {/* Description */}
-              {period.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {period.description}
-                </p>
-              )}
 
               <div className="pt-2 border-t border-border">
                 <div className="flex gap-2">

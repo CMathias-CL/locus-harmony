@@ -14,17 +14,7 @@ interface Professor {
   email: string;
   phone?: string;
   department?: string;
-  employee_id?: string;
-  specialization?: string;
-  degree?: string;
-  experience_years?: number;
-  max_hours_per_week?: number;
-  available_days?: number[];
-  start_time?: string;
-  end_time?: string;
-  competencies?: string[];
-  certifications?: string[];
-  status: 'active' | 'inactive' | 'on_leave';
+  role: string;
   created_at: string;
   updated_at: string;
 }
@@ -68,53 +58,32 @@ export default function Professors() {
   const filteredProfessors = professors.filter((professor) => {
     const matchesSearch = 
       professor.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      professor.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      professor.employee_id?.toLowerCase().includes(searchTerm.toLowerCase());
+      professor.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = filterDepartment === "all" || professor.department === filterDepartment;
-    const matchesStatus = filterStatus === "all" || professor.status === filterStatus;
-    return matchesSearch && matchesDepartment && matchesStatus;
+    return matchesSearch && matchesDepartment;
   });
 
   const departments = ["all", ...Array.from(new Set(professors.map(p => p.department).filter(Boolean)))];
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge variant="outline" className="border-success text-success">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Activo
-          </Badge>
-        );
-      case "inactive":
-        return (
-          <Badge variant="outline" className="border-destructive text-destructive">
-            <XCircle className="w-3 h-3 mr-1" />
-            Inactivo
-          </Badge>
-        );
-      case "on_leave":
-        return (
-          <Badge variant="outline" className="border-warning text-warning">
-            <Clock className="w-3 h-3 mr-1" />
-            Licencia
-          </Badge>
-        );
-      default:
-        return null;
-    }
+    return (
+      <Badge variant="outline" className="border-success text-success">
+        <CheckCircle className="w-3 h-3 mr-1" />
+        Activo
+      </Badge>
+    );
   };
 
   const getDepartmentColor = (department: string) => {
     const colors = {
-      "Matemáticas": "bg-blue-100 text-blue-800 border-blue-200",
-      "Física": "bg-green-100 text-green-800 border-green-200",
-      "Química": "bg-purple-100 text-purple-800 border-purple-200",
-      "Ingeniería": "bg-orange-100 text-orange-800 border-orange-200",
-      "Administración": "bg-red-100 text-red-800 border-red-200",
-      "Humanidades": "bg-yellow-100 text-yellow-800 border-yellow-200"
+      "Matemáticas": "bg-primary/10 text-primary border-primary/20",
+      "Física": "bg-success/10 text-success border-success/20",
+      "Química": "bg-accent text-accent-foreground border-accent",
+      "Ingeniería": "bg-warning/10 text-warning border-warning/20",
+      "Administración": "bg-destructive/10 text-destructive border-destructive/20",
+      "Humanidades": "bg-secondary text-secondary-foreground border-secondary"
     };
-    return colors[department as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200";
+    return colors[department as keyof typeof colors] || "bg-muted text-muted-foreground border-muted";
   };
 
   if (loading) {
@@ -144,50 +113,36 @@ export default function Professors() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nombre, email o ID empleado..."
-                  className="pl-9"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nombre o email..."
+                    className="pl-9"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {departments.map((dept) => (
+                  <Button
+                    key={dept}
+                    variant={filterDepartment === dept ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilterDepartment(dept)}
+                  >
+                    {dept === "all" ? "Todos Depts." : dept}
+                  </Button>
+                ))}
               </div>
             </div>
-            <div className="flex gap-2">
-              {departments.map((dept) => (
-                <Button
-                  key={dept}
-                  variant={filterDepartment === dept ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterDepartment(dept)}
-                >
-                  {dept === "all" ? "Todos Depts." : dept}
-                </Button>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              {["all", "active", "inactive", "on_leave"].map((status) => (
-                <Button
-                  key={status}
-                  variant={filterStatus === status ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterStatus(status)}
-                >
-                  {status === "all" ? "Todos" : 
-                   status === "active" ? "Activos" :
-                   status === "inactive" ? "Inactivos" : "Licencia"}
-                </Button>
-              ))}
-            </div>
-          </div>
         </CardContent>
       </Card>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-primary">
@@ -199,25 +154,17 @@ export default function Professors() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-success">
-              {professors.filter(p => p.status === "active").length}
+              {professors.filter(p => p.role === "professor").length}
             </div>
-            <p className="text-xs text-muted-foreground">Activos</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-warning">
-              {professors.filter(p => p.status === "on_leave").length}
-            </div>
-            <p className="text-xs text-muted-foreground">En Licencia</p>
+            <p className="text-xs text-muted-foreground">Profesores Activos</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-muted-foreground">
-              {Math.round(professors.reduce((sum, p) => sum + (p.experience_years || 0), 0) / professors.length || 0)}
+              {departments.length - 1}
             </div>
-            <p className="text-xs text-muted-foreground">Años Experiencia Prom.</p>
+            <p className="text-xs text-muted-foreground">Departamentos</p>
           </CardContent>
         </Card>
       </div>
@@ -231,11 +178,11 @@ export default function Professors() {
                 <div className="flex-1">
                   <CardTitle className="text-lg line-clamp-1">{professor.full_name}</CardTitle>
                   <p className="text-sm text-muted-foreground font-medium mt-1">
-                    {professor.employee_id && `ID: ${professor.employee_id}`}
+                    {professor.role}
                   </p>
                 </div>
                 <div className="flex flex-col gap-1 items-end">
-                  {getStatusBadge(professor.status)}
+                  {getStatusBadge(professor.role)}
                   {professor.department && (
                     <Badge variant="outline" className={getDepartmentColor(professor.department)}>
                       {professor.department}
@@ -258,65 +205,6 @@ export default function Professors() {
                   </div>
                 )}
               </div>
-
-              {/* Professional Info */}
-              <div className="space-y-2">
-                {professor.degree && (
-                  <div className="flex items-center text-sm">
-                    <GraduationCap className="w-4 h-4 mr-2 text-muted-foreground" />
-                    <span className="font-medium">{professor.degree}</span>
-                  </div>
-                )}
-                {professor.specialization && (
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-medium">Especialización:</span> {professor.specialization}
-                  </p>
-                )}
-                {professor.experience_years && (
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-medium">Experiencia:</span> {professor.experience_years} años
-                  </p>
-                )}
-              </div>
-
-              {/* Availability */}
-              {professor.available_days && professor.available_days.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Disponibilidad:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {professor.available_days.map((day) => (
-                      <Badge key={day} variant="secondary" className="text-xs">
-                        {daysOfWeek[day]}
-                      </Badge>
-                    ))}
-                  </div>
-                  {professor.start_time && professor.end_time && (
-                    <p className="text-xs text-muted-foreground">
-                      {professor.start_time} - {professor.end_time}
-                      {professor.max_hours_per_week && ` (${professor.max_hours_per_week}h/sem)`}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Competencies */}
-              {professor.competencies && professor.competencies.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Competencias:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {professor.competencies.slice(0, 3).map((competency, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {competency}
-                      </Badge>
-                    ))}
-                    {professor.competencies.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{professor.competencies.length - 3}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
 
               <div className="pt-2 border-t border-border">
                 <div className="flex gap-2">

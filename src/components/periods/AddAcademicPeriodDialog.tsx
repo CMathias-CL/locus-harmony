@@ -18,7 +18,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -32,7 +31,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -43,7 +41,7 @@ import { cn } from "@/lib/utils";
 
 const academicPeriodSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
-  period_type: z.enum(["semester", "trimester", "quarter", "annual"], {
+  period_type: z.enum(["semester", "trimester", "quarter", "module"], {
     required_error: "Selecciona un tipo de período"
   }),
   start_date: z.date({
@@ -52,28 +50,12 @@ const academicPeriodSchema = z.object({
   end_date: z.date({
     required_error: "La fecha de fin es requerida"
   }),
-  enrollment_start: z.date().optional(),
-  enrollment_end: z.date().optional(),
-  max_courses_per_student: z.coerce.number().min(1, "Debe ser mayor a 0").max(15, "Máximo 15 cursos").optional(),
-  description: z.string().optional(),
   is_active: z.boolean(),
-  is_current: z.boolean(),
 }).refine(
   (data) => data.end_date > data.start_date,
   {
     message: "La fecha de fin debe ser posterior a la fecha de inicio",
     path: ["end_date"]
-  }
-).refine(
-  (data) => {
-    if (data.enrollment_start && data.enrollment_end) {
-      return data.enrollment_end > data.enrollment_start;
-    }
-    return true;
-  },
-  {
-    message: "La fecha de fin de inscripciones debe ser posterior al inicio",
-    path: ["enrollment_end"]
   }
 );
 
@@ -93,10 +75,7 @@ export function AddAcademicPeriodDialog({ onPeriodAdded }: AddAcademicPeriodDial
     defaultValues: {
       name: "",
       period_type: "semester",
-      max_courses_per_student: 6,
-      description: "",
       is_active: true,
-      is_current: false,
     },
   });
 
@@ -104,20 +83,12 @@ export function AddAcademicPeriodDialog({ onPeriodAdded }: AddAcademicPeriodDial
     { value: "semester", label: "Semestre" },
     { value: "trimester", label: "Trimestre" },
     { value: "quarter", label: "Cuatrimestre" },
-    { value: "annual", label: "Anual" }
+    { value: "module", label: "Módulo" }
   ];
 
   const onSubmit = async (data: AcademicPeriodFormData) => {
     setLoading(true);
     try {
-      // If this period is set as current, unset any existing current period
-      if (data.is_current) {
-        await supabase
-          .from("academic_periods")
-          .update({ is_current: false })
-          .eq("is_current", true);
-      }
-
       const { error } = await supabase
         .from("academic_periods")
         .insert({
@@ -125,12 +96,7 @@ export function AddAcademicPeriodDialog({ onPeriodAdded }: AddAcademicPeriodDial
           period_type: data.period_type,
           start_date: data.start_date.toISOString().split('T')[0],
           end_date: data.end_date.toISOString().split('T')[0],
-          enrollment_start: data.enrollment_start ? data.enrollment_start.toISOString().split('T')[0] : null,
-          enrollment_end: data.enrollment_end ? data.enrollment_end.toISOString().split('T')[0] : null,
-          max_courses_per_student: data.max_courses_per_student || null,
-          description: data.description || null,
           is_active: data.is_active,
-          is_current: data.is_current,
         });
 
       if (error) throw error;
@@ -158,12 +124,12 @@ export function AddAcademicPeriodDialog({ onPeriodAdded }: AddAcademicPeriodDial
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="gradient">
+        <Button variant="default">
           <Plus className="w-4 h-4 mr-2" />
           Agregar Período
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Agregar Nuevo Período Académico</DialogTitle>
           <DialogDescription>
@@ -171,320 +137,133 @@ export function AddAcademicPeriodDialog({ onPeriodAdded }: AddAcademicPeriodDial
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             
-            {/* Basic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Información Básica</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre del Período</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ej: Semestre 2024-1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="period_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Período</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona tipo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {periodTypes.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nombre del Período</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: Semestre 2024-1" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="period_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Período</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {periodTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="description"
+                name="start_date"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descripción (Opcional)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Descripción del período académico, notas especiales, etc."
-                        className="min-h-[80px]"
-                        {...field} 
-                      />
-                    </FormControl>
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Fecha de Inicio</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd/MM/yyyy")
+                            ) : (
+                              <span>Seleccionar fecha</span>
+                            )}
+                            <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-
-            {/* Period Dates */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Fechas del Período</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="start_date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Fecha de Inicio</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "dd/MM/yyyy")
-                              ) : (
-                                <span>Seleccionar fecha</span>
-                              )}
-                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="end_date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Fecha de Fin</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "dd/MM/yyyy")
-                              ) : (
-                                <span>Seleccionar fecha</span>
-                              )}
-                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => {
-                              const startDate = form.getValues("start_date");
-                              return date < new Date() || (startDate && date <= startDate);
-                            }}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Enrollment Dates */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Fechas de Inscripciones (Opcional)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="enrollment_start"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Inicio de Inscripciones</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "dd/MM/yyyy")
-                              ) : (
-                                <span>Seleccionar fecha</span>
-                              )}
-                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="enrollment_end"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Fin de Inscripciones</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "dd/MM/yyyy")
-                              ) : (
-                                <span>Seleccionar fecha</span>
-                              )}
-                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => {
-                              const enrollmentStart = form.getValues("enrollment_start");
-                              return date < new Date() || (enrollmentStart && date <= enrollmentStart);
-                            }}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Configuration */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Configuración</h3>
               
               <FormField
                 control={form.control}
-                name="max_courses_per_student"
+                name="end_date"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Máximo Cursos por Estudiante (Opcional)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="1" 
-                        max="15" 
-                        placeholder="6"
-                        {...field} 
-                      />
-                    </FormControl>
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Fecha de Fin</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd/MM/yyyy")
+                            ) : (
+                              <span>Seleccionar fecha</span>
+                            )}
+                            <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => {
+                            const startDate = form.getValues("start_date");
+                            return date < new Date() || (startDate && date <= startDate);
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="is_active"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Período Activo</FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                          Los períodos activos aparecen disponibles para asignación de cursos
-                        </p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="is_current"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Período Actual</FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                          Solo un período puede estar marcado como actual (se desactivará el anterior)
-                        </p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 pt-4">
               <Button 
                 type="button" 
                 variant="outline" 
@@ -494,7 +273,7 @@ export function AddAcademicPeriodDialog({ onPeriodAdded }: AddAcademicPeriodDial
                 Cancelar
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Creando..." : "Crear Período"}
+                {loading ? "Agregando..." : "Agregar Período"}
               </Button>
             </div>
           </form>
