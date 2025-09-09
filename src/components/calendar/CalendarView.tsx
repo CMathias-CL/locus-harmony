@@ -23,6 +23,7 @@ interface Reservation {
     code: string;
   };
   course?: {
+    id: string;
     name: string;
     code: string;
   };
@@ -47,26 +48,39 @@ const timeSlots = [
   "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
 ];
 
-const getEventColor = (type: string, status: string) => {
-  if (status === "pending") return "bg-warning/20 border-warning text-warning dark:text-warning-foreground";
-  if (status === "cancelled") return "bg-destructive/20 border-destructive text-destructive dark:text-destructive-foreground";
+// Generate color based on course ID for consistency
+const getCourseColor = (courseId: string | null, status: string) => {
+  if (status === "pending") return "bg-warning/20 border-warning text-warning-foreground dark:text-warning-foreground";
+  if (status === "cancelled") return "bg-destructive/20 border-destructive text-red-600 dark:text-red-400";
   
-  switch (type) {
-    case "class":
-      return "bg-[hsl(var(--event-class))]/20 border-[hsl(var(--event-class))] text-[hsl(var(--event-class))] dark:text-[hsl(var(--event-class-foreground))]";
-    case "lab":
-      return "bg-[hsl(var(--event-lab))]/20 border-[hsl(var(--event-lab))] text-[hsl(var(--event-lab))] dark:text-[hsl(var(--event-lab-foreground))]";
-    case "seminar":
-      return "bg-[hsl(var(--event-seminar))]/20 border-[hsl(var(--event-seminar))] text-[hsl(var(--event-seminar))] dark:text-[hsl(var(--event-seminar-foreground))]";
-    case "exam":
-      return "bg-[hsl(var(--event-exam))]/20 border-[hsl(var(--event-exam))] text-[hsl(var(--event-exam))] dark:text-[hsl(var(--event-exam-foreground))]";
-    case "meeting":
-      return "bg-[hsl(var(--event-meeting))]/20 border-[hsl(var(--event-meeting))] text-[hsl(var(--event-meeting))] dark:text-[hsl(var(--event-meeting-foreground))]";
-    case "event":
-      return "bg-[hsl(var(--event-event))]/20 border-[hsl(var(--event-event))] text-[hsl(var(--event-event))] dark:text-[hsl(var(--event-event-foreground))]";
-    default:
-      return "bg-muted border-border text-muted-foreground";
+  if (!courseId) {
+    return "bg-muted border-border text-muted-foreground";
   }
+  
+  // Generate consistent color from course ID hash
+  let hash = 0;
+  for (let i = 0; i < courseId.length; i++) {
+    const char = courseId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Use hash to select from predefined course color palette
+  const colors = [
+    "bg-blue-100 border-blue-500 text-blue-700 dark:bg-blue-900/20 dark:border-blue-400 dark:text-blue-300",
+    "bg-green-100 border-green-500 text-green-700 dark:bg-green-900/20 dark:border-green-400 dark:text-green-300",
+    "bg-purple-100 border-purple-500 text-purple-700 dark:bg-purple-900/20 dark:border-purple-400 dark:text-purple-300",
+    "bg-orange-100 border-orange-500 text-orange-700 dark:bg-orange-900/20 dark:border-orange-400 dark:text-orange-300",
+    "bg-pink-100 border-pink-500 text-pink-700 dark:bg-pink-900/20 dark:border-pink-400 dark:text-pink-300",
+    "bg-indigo-100 border-indigo-500 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-400 dark:text-indigo-300",
+    "bg-teal-100 border-teal-500 text-teal-700 dark:bg-teal-900/20 dark:border-teal-400 dark:text-teal-300",
+    "bg-red-100 border-red-500 text-red-700 dark:bg-red-900/20 dark:border-red-400 dark:text-red-300",
+    "bg-yellow-100 border-yellow-500 text-yellow-700 dark:bg-yellow-900/20 dark:border-yellow-400 dark:text-yellow-300",
+    "bg-cyan-100 border-cyan-500 text-cyan-700 dark:bg-cyan-900/20 dark:border-cyan-400 dark:text-cyan-300"
+  ];
+  
+  const colorIndex = Math.abs(hash) % colors.length;
+  return colors[colorIndex];
 };
 
 const getStatusLabel = (status: string) => {
@@ -143,7 +157,7 @@ export function CalendarView() {
         .select(`
           id, title, start_datetime, end_datetime, event_type, status,
           room:rooms (name, code),
-          course:courses (name, code),
+          course:courses (id, name, code),
           created_by:profiles (full_name)
         `)
         .gte('start_datetime', startDate.toISOString())
@@ -275,7 +289,7 @@ export function CalendarView() {
                         {dayReservations.map((reservation) => (
                           <div
                             key={reservation.id}
-                            className={`p-2 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getEventColor(reservation.event_type, reservation.status)}`}
+                            className={`p-2 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getCourseColor(reservation.course?.id || null, reservation.status)}`}
                             onClick={() => handleReservationClick(reservation)}
                           >
                             <div className="font-semibold truncate">{reservation.title}</div>
@@ -355,7 +369,7 @@ export function CalendarView() {
                           {reservations.map((reservation: Reservation) => (
                             <div
                               key={reservation.id}
-                              className={`p-1 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getEventColor(reservation.event_type, reservation.status)}`}
+                              className={`p-1 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getCourseColor(reservation.course?.id || null, reservation.status)}`}
                               onClick={() => handleReservationClick(reservation)}
                             >
                               <div className="font-semibold truncate text-[10px]">{reservation.title}</div>
@@ -400,7 +414,7 @@ export function CalendarView() {
                   {dayReservations.map((reservation) => (
                     <div
                       key={reservation.id}
-                      className={`p-3 rounded text-sm font-medium border mb-2 cursor-pointer hover:opacity-80 transition-academic ${getEventColor(reservation.event_type, reservation.status)}`}
+                      className={`p-3 rounded text-sm font-medium border mb-2 cursor-pointer hover:opacity-80 transition-academic ${getCourseColor(reservation.course?.id || null, reservation.status)}`}
                       onClick={() => handleReservationClick(reservation)}
                     >
                       <div className="flex justify-between items-start">

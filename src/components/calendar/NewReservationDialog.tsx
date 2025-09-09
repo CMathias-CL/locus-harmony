@@ -134,10 +134,10 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.date || !formData.start_time || !formData.end_time || !formData.room_id) {
+    if (!formData.date || !formData.start_time || !formData.end_time || !formData.room_id || !formData.course_id) {
       toast({
         title: "Error",
-        description: "Por favor completa todos los campos requeridos.",
+        description: "Por favor completa todos los campos requeridos, incluyendo el curso.",
         variant: "destructive",
       });
       return;
@@ -181,11 +181,14 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
         return;
       }
 
+      // Generate a recurring template ID if this is recurring
+      const recurringTemplateId = formData.is_recurring ? crypto.randomUUID() : null;
+
       const reservationData = {
         title: formData.title,
         description: formData.description,
         room_id: formData.room_id,
-        course_id: formData.course_id || null,
+        course_id: formData.course_id,
         start_datetime: startDateTime.toISOString(),
         end_datetime: endDateTime.toISOString(),
         event_type: formData.event_type as "class" | "lab" | "seminar" | "exam" | "meeting" | "event",
@@ -193,7 +196,8 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
         equipment_needed: formData.equipment_needed as any,
         notes: formData.notes,
         status: 'pending' as "pending" | "confirmed" | "cancelled" | "completed",
-        created_by: '00000000-0000-0000-0000-000000000000' // Development user ID
+        created_by: '00000000-0000-0000-0000-000000000000', // Development user ID
+        recurring_template_id: recurringTemplateId
       };
 
       const { data: newReservation, error } = await supabase
@@ -221,18 +225,29 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
       if (formData.is_recurring) {
         const reservations = generateRecurringReservations();
         
-        // Create all recurring reservations
+        // Create all recurring reservations with the same template ID
         for (const reservation of reservations) {
-          const { error: recurringError } = await supabase
+          // Check for conflicts for each recurring reservation
+          const { data: recurringConflicts } = await supabase
             .from('reservations')
-            .insert({
-              ...reservationData,
-              start_datetime: reservation.start_datetime,
-              end_datetime: reservation.end_datetime
-            });
-          
-          if (recurringError) {
-            console.error('Error creating recurring reservation:', recurringError);
+            .select('id, title, start_datetime, end_datetime')
+            .eq('room_id', formData.room_id)
+            .in('status', ['confirmed', 'pending'])
+            .or(`and(start_datetime.lt.${reservation.end_datetime},end_datetime.gt.${reservation.start_datetime})`);
+
+          if (!recurringConflicts || recurringConflicts.length === 0) {
+            const { error: recurringError } = await supabase
+              .from('reservations')
+              .insert({
+                ...reservationData,
+                start_datetime: reservation.start_datetime,
+                end_datetime: reservation.end_datetime,
+                recurring_template_id: recurringTemplateId
+              });
+            
+            if (recurringError) {
+              console.error('Error creating recurring reservation:', recurringError);
+            }
           }
         }
 
@@ -457,7 +472,7 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
             </div>
 
             <div>
-              <Label>Curso (Opcional)</Label>
+              <Label>Curso *</Label>
               <Select value={formData.course_id} onValueChange={(value) => setFormData({ ...formData, course_id: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar curso" />

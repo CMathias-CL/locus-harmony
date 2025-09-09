@@ -27,6 +27,7 @@ interface Reservation {
     code: string;
   };
   course?: {
+    id: string;
     name: string;
     code: string;
   };

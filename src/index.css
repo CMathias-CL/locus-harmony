@@ -40,20 +40,6 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 98%;
 
-    /* Event type colors */
-    --event-class: 214 84% 45%;
-    --event-class-foreground: 0 0% 98%;
-    --event-lab: 142 76% 36%;
-    --event-lab-foreground: 0 0% 98%;
-    --event-seminar: 271 76% 53%;
-    --event-seminar-foreground: 0 0% 98%;
-    --event-exam: 0 84% 60%;
-    --event-exam-foreground: 0 0% 98%;
-    --event-meeting: 38 92% 50%;
-    --event-meeting-foreground: 0 0% 98%;
-    --event-event: 258 90% 66%;
-    --event-event-foreground: 0 0% 98%;
-
     --border: 214 20% 88%;
     --input: 214 20% 88%;
     --ring: 214 84% 45%;
@@ -118,20 +104,6 @@ All colors MUST be HSL.
 
     --warning: 38 85% 55%;
     --warning-foreground: 0 0% 98%;
-
-    /* Event type colors - dark mode */
-    --event-class: 214 76% 60%;
-    --event-class-foreground: 220 27% 8%;
-    --event-lab: 142 70% 45%;
-    --event-lab-foreground: 0 0% 98%;
-    --event-seminar: 271 70% 60%;
-    --event-seminar-foreground: 0 0% 98%;
-    --event-exam: 0 75% 60%;
-    --event-exam-foreground: 0 0% 98%;
-    --event-meeting: 38 85% 55%;
-    --event-meeting-foreground: 0 0% 98%;
-    --event-event: 258 85% 70%;
-    --event-event-foreground: 220 27% 8%;
 
     --border: 220 20% 18%;
     --input: 220 20% 18%;
