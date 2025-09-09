@@ -36,6 +36,7 @@ const professorSchema = z.object({
   email: z.string().email("Email inválido"),
   phone: z.string().optional(),
   department: z.string().optional(),
+  position: z.string().min(1, "El cargo es requerido"),
 });
 
 type ProfessorFormData = z.infer<typeof professorSchema>;
@@ -56,6 +57,7 @@ export function AddProfessorDialog({ onProfessorAdded }: AddProfessorDialogProps
       email: "",
       phone: "",
       department: "",
+      position: "",
     },
   });
 
@@ -72,6 +74,19 @@ export function AddProfessorDialog({ onProfessorAdded }: AddProfessorDialogProps
     "Educación Física"
   ];
 
+  const positions = [
+    "Profesor Titular",
+    "Profesor Asociado", 
+    "Profesor Asistente",
+    "Profesor Instructor",
+    "Ayudante",
+    "Profesor Visitante",
+    "Profesor Emérito",
+    "Catedrático",
+    "Docente",
+    "Investigador"
+  ];
+
   const onSubmit = async (data: ProfessorFormData) => {
     setLoading(true);
     try {
@@ -84,6 +99,7 @@ export function AddProfessorDialog({ onProfessorAdded }: AddProfessorDialogProps
           role: "professor",
           phone: data.phone || null,
           department: data.department || null,
+          position: data.position,
         });
 
       if (error) throw error;
@@ -183,6 +199,31 @@ export function AddProfessorDialog({ onProfessorAdded }: AddProfessorDialogProps
                       {departments.map((dept) => (
                         <SelectItem key={dept} value={dept}>
                           {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="position"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cargo</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona el cargo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {positions.map((pos) => (
+                        <SelectItem key={pos} value={pos}>
+                          {pos}
                         </SelectItem>
                       ))}
                     </SelectContent>

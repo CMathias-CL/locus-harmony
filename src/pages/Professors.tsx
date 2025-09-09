@@ -14,6 +14,7 @@ interface Professor {
   email: string;
   phone?: string;
   department?: string;
+  position?: string;
   role: string;
   created_at: string;
   updated_at: string;
@@ -178,7 +179,7 @@ export default function Professors() {
                 <div className="flex-1">
                   <CardTitle className="text-lg line-clamp-1">{professor.full_name}</CardTitle>
                   <p className="text-sm text-muted-foreground font-medium mt-1">
-                    {professor.role}
+                    {professor.position || professor.role}
                   </p>
                 </div>
                 <div className="flex flex-col gap-1 items-end">
