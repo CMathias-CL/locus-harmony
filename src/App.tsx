@@ -7,6 +7,7 @@ import { Layout } from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
 import Rooms from "./pages/Rooms";
+import Courses from "./pages/Courses";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route index element={<Dashboard />} />
             <Route path="calendar" element={<Calendar />} />
             <Route path="rooms" element={<Rooms />} />
+            <Route path="courses" element={<Courses />} />
             <Route path="users" element={<div className="p-6"><h1 className="text-3xl font-bold">Usuarios</h1><p className="text-muted-foreground">Próximamente...</p></div>} />
             <Route path="reports" element={<div className="p-6"><h1 className="text-3xl font-bold">Reportes</h1><p className="text-muted-foreground">Próximamente...</p></div>} />
             <Route path="settings" element={<div className="p-6"><h1 className="text-3xl font-bold">Configuración</h1><p className="text-muted-foreground">Próximamente...</p></div>} />

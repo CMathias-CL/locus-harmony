@@ -11,6 +11,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ const menuItems = [
   { title: "Dashboard", icon: Home, href: "/" },
   { title: "Calendario", icon: Calendar, href: "/calendar" },
   { title: "Salas", icon: Building2, href: "/rooms" },
+  { title: "Cursos", icon: BookOpen, href: "/courses" },
   { title: "Usuarios", icon: Users, href: "/users" },
   { title: "Reportes", icon: BarChart3, href: "/reports" },
   { title: "Configuración", icon: Settings, href: "/settings" },
