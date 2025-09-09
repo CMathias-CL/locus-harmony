@@ -91,7 +91,6 @@ export function AddProfessorDialog({ onProfessorAdded }: AddProfessorDialogProps
       const { error } = await supabase
         .from("profiles")
         .insert({
-          id: crypto.randomUUID(),
           full_name: data.full_name,
           email: data.email,
           role: "professor",
