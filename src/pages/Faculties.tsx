@@ -33,6 +33,17 @@ export default function Faculties() {
 
   useEffect(() => {
     fetchFaculties();
+    
+    // Listen for faculty creation events
+    const handleFacultyCreated = () => {
+      fetchFaculties();
+    };
+    
+    window.addEventListener('facultyCreated', handleFacultyCreated);
+    
+    return () => {
+      window.removeEventListener('facultyCreated', handleFacultyCreated);
+    };
   }, []);
 
   const filteredFaculties = faculties.filter((faculty) => {
