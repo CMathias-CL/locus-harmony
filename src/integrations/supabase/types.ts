@@ -170,6 +170,36 @@ export type Database = {
           },
         ]
       }
+      faculties: {
+        Row: {
+          campus: string | null
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          campus?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          campus?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           category: string
@@ -211,9 +241,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          can_manage_all_faculties: boolean | null
           created_at: string | null
           department: string | null
           email: string
+          faculty_permissions: Json | null
           full_name: string
           id: string
           phone: string | null
@@ -222,9 +254,11 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          can_manage_all_faculties?: boolean | null
           created_at?: string | null
           department?: string | null
           email: string
+          faculty_permissions?: Json | null
           full_name: string
           id?: string
           phone?: string | null
@@ -233,9 +267,11 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          can_manage_all_faculties?: boolean | null
           created_at?: string | null
           department?: string | null
           email?: string
+          faculty_permissions?: Json | null
           full_name?: string
           id?: string
           phone?: string | null
@@ -385,6 +421,7 @@ export type Database = {
           code: string
           created_at: string | null
           description: string | null
+          faculty_id: string | null
           features: Json | null
           floor: number | null
           id: string
@@ -399,6 +436,7 @@ export type Database = {
           code: string
           created_at?: string | null
           description?: string | null
+          faculty_id?: string | null
           features?: Json | null
           floor?: number | null
           id?: string
@@ -413,6 +451,7 @@ export type Database = {
           code?: string
           created_at?: string | null
           description?: string | null
+          faculty_id?: string | null
           features?: Json | null
           floor?: number | null
           id?: string
@@ -427,6 +466,13 @@ export type Database = {
             columns: ["building_id"]
             isOneToOne: false
             referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_faculty_id_fkey"
+            columns: ["faculty_id"]
+            isOneToOne: false
+            referencedRelation: "faculties"
             referencedColumns: ["id"]
           },
         ]
