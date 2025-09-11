@@ -35,6 +35,20 @@ interface CleaningReport {
   rooms: Room;
 }
 
+interface Reservation {
+  id: string;
+  title: string;
+  start_datetime: string;
+  end_datetime: string;
+  event_type: string;
+  status: string;
+  room_id: string;
+  course?: {
+    name: string;
+    code: string;
+  };
+}
+
 interface ObservationType {
   id: string;
   name: string;
@@ -47,6 +61,7 @@ export default function CleaningReports() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [cleaningReports, setCleaningReports] = useState<CleaningReport[]>([]);
   const [observationTypes, setObservationTypes] = useState<ObservationType[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -109,6 +124,35 @@ export default function CleaningReports() {
       setObservationTypes(data || []);
     } catch (error) {
       console.error("Error fetching observation types:", error);
+    }
+  };
+
+  const fetchReservations = async () => {
+    try {
+      const startDate = `${selectedDate}T00:00:00.000Z`;
+      const endDate = `${selectedDate}T23:59:59.999Z`;
+      
+      const { data, error } = await supabase
+        .from("reservations")
+        .select(`
+          id,
+          title,
+          start_datetime,
+          end_datetime,
+          event_type,
+          status,
+          room_id,
+          course:courses (name, code)
+        `)
+        .gte("start_datetime", startDate)
+        .lte("start_datetime", endDate)
+        .in("status", ["confirmed", "pending"])
+        .order("start_datetime", { ascending: true });
+
+      if (error) throw error;
+      setReservations(data || []);
+    } catch (error) {
+      console.error("Error fetching reservations:", error);
     }
   };
 
@@ -206,7 +250,8 @@ export default function CleaningReports() {
       await Promise.all([
         fetchRooms(),
         fetchCleaningReports(),
-        fetchObservationTypes()
+        fetchObservationTypes(),
+        fetchReservations()
       ]);
       setLoading(false);
     };
@@ -297,15 +342,19 @@ export default function CleaningReports() {
 
       {/* Cleaning Reports List */}
       <div className="space-y-4">
-        {cleaningReports.map((report) => (
-          <CleaningReportCard
-            key={report.id}
-            report={report}
-            observationTypes={observationTypes}
-            onUpdateStatus={updateCleaningStatus}
-            onUpdateObservations={updateObservations}
-          />
-        ))}
+        {cleaningReports.map((report) => {
+          const roomReservations = reservations.filter(r => r.room_id === report.room_id);
+          return (
+            <CleaningReportCard
+              key={report.id}
+              report={report}
+              reservations={roomReservations}
+              observationTypes={observationTypes}
+              onUpdateStatus={updateCleaningStatus}
+              onUpdateObservations={updateObservations}
+            />
+          );
+        })}
       </div>
 
       {loading && (
@@ -334,6 +383,7 @@ export default function CleaningReports() {
 
 interface CleaningReportCardProps {
   report: CleaningReport;
+  reservations: Reservation[];
   observationTypes: ObservationType[];
   onUpdateStatus: (reportId: string, isCompleted: boolean, cleanedBy?: string) => void;
   onUpdateObservations: (reportId: string, observations: string[], notes?: string) => void;
@@ -341,6 +391,7 @@ interface CleaningReportCardProps {
 
 function CleaningReportCard({ 
   report, 
+  reservations,
   observationTypes, 
   onUpdateStatus, 
   onUpdateObservations 
@@ -396,6 +447,53 @@ function CleaningReportCard({
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Reservations Schedule */}
+        {reservations.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Horarios programados:</Label>
+            <div className="space-y-1">
+              {reservations.map((reservation) => (
+                <div key={reservation.id} className="flex items-center justify-between p-2 bg-accent/20 rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="outline" className="text-xs">
+                      {new Date(reservation.start_datetime).toLocaleTimeString('es-ES', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                      -
+                      {new Date(reservation.end_datetime).toLocaleTimeString('es-ES', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </Badge>
+                    <span className="text-sm font-medium">{reservation.title}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {reservation.course && (
+                      <Badge variant="secondary" className="text-xs">
+                        {reservation.course.code}
+                      </Badge>
+                    )}
+                    <Badge 
+                      variant={reservation.status === 'confirmed' ? 'default' : 'secondary'}
+                      className="text-xs"
+                    >
+                      {reservation.status === 'confirmed' ? 'Confirmada' : 'Pendiente'}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {reservations.length === 0 && (
+          <div className="p-2 bg-muted/50 rounded-md">
+            <p className="text-sm text-muted-foreground text-center">
+              Sin reservas programadas para este día
+            </p>
+          </div>
+        )}
         {/* Cleaning Status */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
