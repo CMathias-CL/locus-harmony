@@ -77,6 +77,80 @@ export type Database = {
         }
         Relationships: []
       }
+      cleaning_observation_types: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
+      cleaning_reports: {
+        Row: {
+          cleaned_at: string | null
+          cleaned_by: string | null
+          cleaning_date: string
+          created_at: string | null
+          id: string
+          is_cleaned: boolean | null
+          notes: string | null
+          observations: Json | null
+          room_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cleaned_at?: string | null
+          cleaned_by?: string | null
+          cleaning_date: string
+          created_at?: string | null
+          id?: string
+          is_cleaned?: boolean | null
+          notes?: string | null
+          observations?: Json | null
+          room_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cleaned_at?: string | null
+          cleaned_by?: string | null
+          cleaning_date?: string
+          created_at?: string | null
+          id?: string
+          is_cleaned?: boolean | null
+          notes?: string | null
+          observations?: Json | null
+          room_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaning_reports_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_enrollments: {
         Row: {
           course_id: string | null

@@ -15,6 +15,7 @@ import {
   GraduationCap,
   CalendarDays,
   School,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const menuItems = [
   { title: "Cursos", icon: BookOpen, href: "/courses" },
   { title: "Profesores", icon: GraduationCap, href: "/professors" },
   { title: "Períodos", icon: CalendarDays, href: "/academic-periods" },
+  { title: "Limpieza", icon: ClipboardCheck, href: "/cleaning-reports" },
   { title: "Usuarios", icon: Users, href: "/users" },
   { title: "Reportes", icon: BarChart3, href: "/reports" },
   { title: "Configuración", icon: Settings, href: "/settings" },
