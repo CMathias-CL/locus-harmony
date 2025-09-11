@@ -129,8 +129,9 @@ export default function CleaningReports() {
 
   const fetchReservations = async () => {
     try {
-      const startDate = `${selectedDate}T00:00:00.000Z`;
-      const endDate = `${selectedDate}T23:59:59.999Z`;
+      // Simple date filtering - get reservations that start on the selected date
+      const startDate = `${selectedDate}T00:00:00`;
+      const endDate = `${selectedDate}T23:59:59`;
       
       const { data, error } = await supabase
         .from("reservations")
@@ -145,7 +146,7 @@ export default function CleaningReports() {
           course:courses (name, code)
         `)
         .gte("start_datetime", startDate)
-        .lte("start_datetime", endDate)
+        .lt("start_datetime", `${new Date(new Date(selectedDate).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}T00:00:00`)
         .in("status", ["confirmed", "pending"])
         .order("start_datetime", { ascending: true });
 
