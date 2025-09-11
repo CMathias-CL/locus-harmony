@@ -120,14 +120,24 @@ const getStatusDetails = (room: any) => {
 export default function Rooms() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [filterFaculty, setFilterFaculty] = useState<string>("all");
   const [rooms, setRooms] = useState<any[]>([]);
+  const [faculties, setFaculties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchRooms = async () => {
     try {
       const { data, error } = await supabase
         .from("rooms")
-        .select("*")
+        .select(`
+          *,
+          faculties (
+            id,
+            name,
+            code,
+            campus
+          )
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -141,15 +151,31 @@ export default function Rooms() {
     }
   };
 
+  const fetchFaculties = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("faculties")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      setFaculties(data || []);
+    } catch (error) {
+      console.error("Error fetching faculties:", error);
+    }
+  };
+
   useEffect(() => {
     fetchRooms();
+    fetchFaculties();
   }, []);
 
   const filteredRooms = rooms.filter((room) => {
     const matchesSearch = room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (room.location && room.location.toLowerCase().includes(searchTerm.toLowerCase()));
+                         (room.faculties?.name && room.faculties.name.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = filterType === "all" || room.room_type === filterType;
-    return matchesSearch && matchesType;
+    const matchesFaculty = filterFaculty === "all" || room.faculty_id === filterFaculty;
+    return matchesSearch && matchesType && matchesFaculty;
   });
 
   const roomTypes = ["all", ...Array.from(new Set(rooms.map(room => room.room_type).filter(Boolean)))];
@@ -175,24 +201,46 @@ export default function Rooms() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar salas por nombre o ubicación..."
+                  placeholder="Buscar salas por nombre o facultad..."
                   className="pl-9"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-            <div className="flex gap-2">
-              {roomTypes.map((type) => (
+            <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2">
                 <Button
-                  key={type}
-                  variant={filterType === type ? "default" : "outline"}
+                  key="all-faculties"
+                  variant={filterFaculty === "all" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setFilterType(type)}
+                  onClick={() => setFilterFaculty("all")}
                 >
-                  {type === "all" ? "Todas" : type}
+                  Todas las Facultades
                 </Button>
-              ))}
+                {faculties.map((faculty) => (
+                  <Button
+                    key={faculty.id}
+                    variant={filterFaculty === faculty.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilterFaculty(faculty.id)}
+                  >
+                    {faculty.code}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                {roomTypes.map((type) => (
+                  <Button
+                    key={type}
+                    variant={filterType === type ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilterType(type)}
+                  >
+                    {type === "all" ? "Todos los Tipos" : type}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -245,7 +293,7 @@ export default function Rooms() {
               </div>
               <div className="flex items-center text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4 mr-1" />
-                Piso {room.floor}
+                {room.faculties?.name || "Sin facultad"} - Piso {room.floor}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">

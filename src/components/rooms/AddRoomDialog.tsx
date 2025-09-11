@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +40,7 @@ const roomSchema = z.object({
   floor: z.coerce.number().min(1, "El piso debe ser mayor a 0"),
   description: z.string().optional(),
   features: z.string().optional(),
+  faculty_id: z.string().min(1, "La facultad es requerida"),
 });
 
 type RoomFormData = z.infer<typeof roomSchema>;
@@ -51,6 +52,7 @@ interface AddRoomDialogProps {
 export function AddRoomDialog({ onRoomAdded }: AddRoomDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [faculties, setFaculties] = useState<any[]>([]);
   const { toast } = useToast();
 
   const form = useForm<RoomFormData>({
@@ -63,8 +65,27 @@ export function AddRoomDialog({ onRoomAdded }: AddRoomDialogProps) {
       floor: 1,
       description: "",
       features: "",
+      faculty_id: "",
     },
   });
+
+  useEffect(() => {
+    const fetchFaculties = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("faculties")
+          .select("*")
+          .order("name");
+
+        if (error) throw error;
+        setFaculties(data || []);
+      } catch (error) {
+        console.error("Error fetching faculties:", error);
+      }
+    };
+
+    fetchFaculties();
+  }, []);
 
   const onSubmit = async (data: RoomFormData) => {
     setLoading(true);
@@ -84,6 +105,7 @@ export function AddRoomDialog({ onRoomAdded }: AddRoomDialogProps) {
           floor: data.floor,
           description: data.description || null,
           features: featuresArray,
+          faculty_id: data.faculty_id,
         });
 
       if (error) throw error;
@@ -147,6 +169,30 @@ export function AddRoomDialog({ onRoomAdded }: AddRoomDialogProps) {
                   <FormControl>
                     <Input placeholder="Ej: A101" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="faculty_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Facultad</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una facultad" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {faculties.map((faculty) => (
+                        <SelectItem key={faculty.id} value={faculty.id}>
+                          {faculty.name} ({faculty.campus})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

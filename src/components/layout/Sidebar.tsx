@@ -14,6 +14,7 @@ import {
   BookOpen,
   GraduationCap,
   CalendarDays,
+  School,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils";
 const menuItems = [
   { title: "Dashboard", icon: Home, href: "/" },
   { title: "Calendario", icon: Calendar, href: "/calendar" },
+  { title: "Facultades", icon: School, href: "/faculties" },
   { title: "Salas", icon: Building2, href: "/rooms" },
   { title: "Cursos", icon: BookOpen, href: "/courses" },
   { title: "Profesores", icon: GraduationCap, href: "/professors" },

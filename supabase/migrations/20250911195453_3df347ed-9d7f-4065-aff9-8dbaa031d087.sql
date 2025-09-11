@@ -1,0 +1,11 @@
+-- Enable RLS on all tables that might be missing it
+ALTER TABLE public.reservations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.academic_periods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.buildings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.room_blocks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.schedule_templates ENABLE ROW LEVEL SECURITY;
