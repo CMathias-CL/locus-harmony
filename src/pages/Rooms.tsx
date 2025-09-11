@@ -190,7 +190,11 @@ export default function Rooms() {
             Administra espacios y consulta disponibilidad
           </p>
         </div>
-        <AddRoomDialog onRoomAdded={fetchRooms} />
+        <AddRoomDialog 
+          onRoomAdded={fetchRooms} 
+          faculties={faculties}
+          onFacultiesRefresh={fetchFaculties}
+        />
       </div>
 
       {/* Filters */}

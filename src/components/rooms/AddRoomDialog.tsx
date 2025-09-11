@@ -47,9 +47,11 @@ type RoomFormData = z.infer<typeof roomSchema>;
 
 interface AddRoomDialogProps {
   onRoomAdded?: () => void;
+  faculties?: any[];
+  onFacultiesRefresh?: () => void;
 }
 
-export function AddRoomDialog({ onRoomAdded }: AddRoomDialogProps) {
+export function AddRoomDialog({ onRoomAdded, faculties: externalFaculties, onFacultiesRefresh }: AddRoomDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [faculties, setFaculties] = useState<any[]>([]);
@@ -70,22 +72,26 @@ export function AddRoomDialog({ onRoomAdded }: AddRoomDialogProps) {
   });
 
   useEffect(() => {
-    const fetchFaculties = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("faculties")
-          .select("*")
-          .order("name");
+    if (externalFaculties) {
+      setFaculties(externalFaculties);
+    } else {
+      const fetchFaculties = async () => {
+        try {
+          const { data, error } = await supabase
+            .from("faculties")
+            .select("*")
+            .order("name");
 
-        if (error) throw error;
-        setFaculties(data || []);
-      } catch (error) {
-        console.error("Error fetching faculties:", error);
-      }
-    };
+          if (error) throw error;
+          setFaculties(data || []);
+        } catch (error) {
+          console.error("Error fetching faculties:", error);
+        }
+      };
 
-    fetchFaculties();
-  }, []);
+      fetchFaculties();
+    }
+  }, [externalFaculties]);
 
   const onSubmit = async (data: RoomFormData) => {
     setLoading(true);
