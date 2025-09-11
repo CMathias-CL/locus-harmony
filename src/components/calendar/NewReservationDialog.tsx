@@ -21,9 +21,19 @@ interface Room {
   capacity: number;
   room_type: string;
   features: string[];
-  building?: {
+  faculty_id?: string;
+  faculties?: {
+    id: string;
     name: string;
+    code: string;
   };
+}
+
+interface Faculty {
+  id: string;
+  name: string;
+  code: string;
+  campus: string;
 }
 
 interface Course {
@@ -42,6 +52,7 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [academicPeriods, setAcademicPeriods] = useState<AcademicPeriod[]>([]);
   const { toast } = useToast();
@@ -49,6 +60,7 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    faculty_id: "",
     room_id: "",
     course_id: "",
     date: null as Date | null,
@@ -110,16 +122,18 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
 
   const fetchData = async () => {
     try {
-      const [roomsRes, coursesRes, periodsRes] = await Promise.all([
+      const [roomsRes, facultiesRes, coursesRes, periodsRes] = await Promise.all([
         supabase.from('rooms').select(`
-          id, name, code, capacity, room_type, features,
-          buildings (name)
+          id, name, code, capacity, room_type, features, faculty_id,
+          faculties (id, name, code)
         `),
+        supabase.from('faculties').select('id, name, code, campus').order('name'),
         supabase.from('courses').select('id, name, code'),
         supabase.from('academic_periods').select('id, name, period_type').eq('is_active', true)
       ]);
 
       if (roomsRes.data) setRooms(roomsRes.data as Room[]);
+      if (facultiesRes.data) setFaculties(facultiesRes.data);
       if (coursesRes.data) setCourses(coursesRes.data);
       if (periodsRes.data) setAcademicPeriods(periodsRes.data);
     } catch (error) {
@@ -134,10 +148,10 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.date || !formData.start_time || !formData.end_time || !formData.room_id || !formData.course_id) {
+    if (!formData.date || !formData.start_time || !formData.end_time || !formData.faculty_id || !formData.room_id || !formData.course_id) {
       toast({
         title: "Error",
-        description: "Por favor completa todos los campos requeridos, incluyendo el curso.",
+        description: "Por favor completa todos los campos requeridos: facultad, sala y curso.",
         variant: "destructive",
       });
       return;
@@ -287,6 +301,7 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
       setFormData({
         title: "",
         description: "",
+        faculty_id: "",
         room_id: "",
         course_id: "",
         date: null,
@@ -487,22 +502,29 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
             </div>
           </div>
 
-          {/* Room and Course Selection */}
+          {/* Faculty and Room Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label>Sala *</Label>
-              <Select value={formData.room_id} onValueChange={(value) => setFormData({ ...formData, room_id: value })}>
+              <Label>Facultad *</Label>
+              <Select 
+                value={formData.faculty_id} 
+                onValueChange={(value) => {
+                  setFormData({ 
+                    ...formData, 
+                    faculty_id: value,
+                    room_id: "" // Reset room when faculty changes
+                  });
+                }}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar sala" />
+                  <SelectValue placeholder="Seleccionar facultad" />
                 </SelectTrigger>
-                <SelectContent>
-                  {rooms.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
+                <SelectContent className="bg-background border border-border shadow-lg z-50">
+                  {faculties.map((faculty) => (
+                    <SelectItem key={faculty.id} value={faculty.id}>
                       <div className="flex flex-col">
-                        <span>{room.name} ({room.code})</span>
-                        <span className="text-sm text-muted-foreground">
-                          {room.building?.name} - Capacidad: {room.capacity}
-                        </span>
+                        <span className="font-medium">{faculty.name}</span>
+                        <span className="text-sm text-muted-foreground">{faculty.code} - {faculty.campus}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -511,23 +533,51 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
             </div>
 
             <div>
-              <Label>Curso *</Label>
-              <Select value={formData.course_id} onValueChange={(value) => setFormData({ ...formData, course_id: value })}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Seleccionar curso" />
+              <Label>Sala *</Label>
+              <Select 
+                value={formData.room_id} 
+                onValueChange={(value) => setFormData({ ...formData, room_id: value })}
+                disabled={!formData.faculty_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={formData.faculty_id ? "Seleccionar sala" : "Primero selecciona una facultad"} />
                 </SelectTrigger>
                 <SelectContent className="bg-background border border-border shadow-lg z-50">
-                  {courses.map((course) => (
-                    <SelectItem key={course.id} value={course.id} className="hover:bg-accent">
-                      <div className="flex flex-col">
-                        <span className="font-medium">{course.name}</span>
-                        <span className="text-sm text-muted-foreground">{course.code}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {rooms
+                    .filter(room => room.faculty_id === formData.faculty_id)
+                    .map((room) => (
+                      <SelectItem key={room.id} value={room.id}>
+                        <div className="flex flex-col">
+                          <span>{room.name} ({room.code})</span>
+                          <span className="text-sm text-muted-foreground">
+                            {room.room_type} - Capacidad: {room.capacity}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Course Selection */}
+          <div>
+            <Label>Curso *</Label>
+            <Select value={formData.course_id} onValueChange={(value) => setFormData({ ...formData, course_id: value })}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Seleccionar curso" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border border-border shadow-lg z-50">
+                {courses.map((course) => (
+                  <SelectItem key={course.id} value={course.id} className="hover:bg-accent">
+                    <div className="flex flex-col">
+                      <span className="font-medium">{course.name}</span>
+                      <span className="text-sm text-muted-foreground">{course.code}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Event Type and Attendees */}
