@@ -75,6 +75,9 @@ export function AddFacultyDialog({ onFacultyAdded }: AddFacultyDialogProps) {
       form.reset();
       setOpen(false);
       onFacultyAdded?.();
+      
+      // Trigger a global refresh event for faculties
+      window.dispatchEvent(new CustomEvent('facultyCreated'));
     } catch (error) {
       console.error("Error adding faculty:", error);
       toast({
