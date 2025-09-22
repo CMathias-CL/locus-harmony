@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Professor {
   id: string;
   full_name: string;
-  email: string;
+  email?: string;  // Optional since non-admin users won't see emails
   phone?: string;
   department?: string;
   position?: string;
@@ -32,11 +32,32 @@ export default function Professors() {
 
   const fetchProfessors = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("role", "professor")
-        .order("created_at", { ascending: false });
+      // Check if current user is admin/coordinator to determine what data to fetch
+      const { data: currentUser } = await supabase.auth.getUser();
+      let isAdmin = false;
+      
+      if (currentUser?.user) {
+        const { data: userProfile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", currentUser.user.id)
+          .single();
+        
+        isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'coordinator';
+      }
+
+      // Use different queries based on user permissions
+      const { data, error } = isAdmin
+        ? await supabase
+            .from("profiles")
+            .select("*")
+            .eq("role", "professor")
+            .order("created_at", { ascending: false })
+        : await supabase
+            .from("profiles")
+            .select("id, full_name, department, position, role, created_at, updated_at")
+            .eq("role", "professor")
+            .order("created_at", { ascending: false });
 
       if (error) throw error;
       setProfessors(data || []);
@@ -195,14 +216,21 @@ export default function Professors() {
             <CardContent className="space-y-4">
               {/* Contact Info */}
               <div className="space-y-2">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Mail className="w-4 h-4 mr-2" />
-                  <span className="truncate">{professor.email}</span>
-                </div>
+                {professor.email && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Mail className="w-4 h-4 mr-2" />
+                    <span className="truncate">{professor.email}</span>
+                  </div>
+                )}
                 {professor.phone && (
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Phone className="w-4 h-4 mr-2" />
                     <span>{professor.phone}</span>
+                  </div>
+                )}
+                {!professor.email && !professor.phone && (
+                  <div className="text-sm text-muted-foreground">
+                    Información de contacto no disponible
                   </div>
                 )}
               </div>

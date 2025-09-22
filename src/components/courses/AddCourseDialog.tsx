@@ -52,7 +52,7 @@ interface AddCourseDialogProps {
 interface Professor {
   id: string;
   full_name: string;
-  email: string;
+  email?: string;  // Made optional since we don't always fetch it
   department?: string;
 }
 
@@ -108,7 +108,7 @@ export function AddCourseDialog({ onCourseAdded }: AddCourseDialogProps) {
       const [professorsRes, periodsRes] = await Promise.all([
         supabase
           .from('profiles')
-          .select('id, full_name, email, department')
+          .select('id, full_name, department')  // Removed email to protect sensitive data
           .eq('role', 'professor'),
         supabase
           .from('academic_periods')
