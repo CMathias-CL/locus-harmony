@@ -29,7 +29,7 @@ interface Reservation {
   };
   created_by: {
     full_name: string;
-  };
+  } | null;
 }
 
 interface Room {

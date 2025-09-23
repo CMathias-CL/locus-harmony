@@ -33,7 +33,7 @@ interface Reservation {
   };
   created_by: {
     full_name: string;
-  };
+  } | null;
 }
 
 interface ReservationDetailsDialogProps {
@@ -267,7 +267,7 @@ export function ReservationDetailsDialog({
               <div>
                 <p className="font-medium">Creado por</p>
                 <p className="text-sm text-muted-foreground">
-                  {reservation.created_by.full_name}
+                  {reservation.created_by?.full_name || 'Usuario no disponible'}
                 </p>
               </div>
             </div>
