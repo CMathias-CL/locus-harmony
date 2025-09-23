@@ -605,6 +605,57 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          action: Database["public"]["Enums"]["permission_action"]
+          created_at: string | null
+          granted: boolean
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          module: Database["public"]["Enums"]["system_module"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["permission_action"]
+          created_at?: string | null
+          granted?: boolean
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["system_module"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["permission_action"]
+          created_at?: string | null
+          granted?: boolean
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["system_module"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -623,6 +674,14 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
         }[]
       }
+      user_has_permission: {
+        Args: {
+          _action: Database["public"]["Enums"]["permission_action"]
+          _module: Database["public"]["Enums"]["system_module"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       academic_period_type: "semester" | "trimester" | "quarter" | "module"
@@ -634,8 +693,18 @@ export type Database = {
         | "meeting"
         | "maintenance"
         | "event"
+      permission_action: "view" | "create" | "edit" | "delete" | "manage_all"
       reservation_status: "pending" | "confirmed" | "cancelled" | "completed"
       room_status: "available" | "occupied" | "maintenance" | "blocked"
+      system_module:
+        | "reservations"
+        | "rooms"
+        | "courses"
+        | "professors"
+        | "academic_periods"
+        | "faculties"
+        | "cleaning_reports"
+        | "users"
       user_role: "admin" | "coordinator" | "professor" | "student"
     }
     CompositeTypes: {
@@ -774,8 +843,19 @@ export const Constants = {
         "maintenance",
         "event",
       ],
+      permission_action: ["view", "create", "edit", "delete", "manage_all"],
       reservation_status: ["pending", "confirmed", "cancelled", "completed"],
       room_status: ["available", "occupied", "maintenance", "blocked"],
+      system_module: [
+        "reservations",
+        "rooms",
+        "courses",
+        "professors",
+        "academic_periods",
+        "faculties",
+        "cleaning_reports",
+        "users",
+      ],
       user_role: ["admin", "coordinator", "professor", "student"],
     },
   },

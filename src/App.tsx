@@ -12,6 +12,7 @@ import Courses from "./pages/Courses";
 import Professors from "./pages/Professors";
 import AcademicPeriods from "./pages/AcademicPeriods";
 import CleaningReports from "./pages/CleaningReports";
+import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,7 +32,7 @@ const App = () => (
             <Route path="courses" element={<Courses />} />
             <Route path="professors" element={<Professors />} />
             <Route path="academic-periods" element={<AcademicPeriods />} />
-            <Route path="users" element={<div className="p-6"><h1 className="text-3xl font-bold">Usuarios</h1><p className="text-muted-foreground">Próximamente...</p></div>} />
+            <Route path="users" element={<Users />} />
             <Route path="reports" element={<div className="p-6"><h1 className="text-3xl font-bold">Reportes</h1><p className="text-muted-foreground">Próximamente...</p></div>} />
             <Route path="cleaning-reports" element={<CleaningReports />} />
             <Route path="settings" element={<div className="p-6"><h1 className="text-3xl font-bold">Configuración</h1><p className="text-muted-foreground">Próximamente...</p></div>} />
