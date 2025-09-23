@@ -13,7 +13,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { UserPermissionsDialog } from "@/components/users/UserPermissionsDialog";
-import { Settings, Shield, Users as UsersIcon } from "lucide-react";
+import { AddUserDialog } from "@/components/users/AddUserDialog";
+import { Settings, Shield, Users as UsersIcon, UserPlus, AlertCircle } from "lucide-react";
 
 interface User {
   id: string;
@@ -28,26 +29,29 @@ interface User {
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       const { data, error } = await supabase
         .from("profiles")
         .select("id, email, full_name, role, department, position, created_at")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        setError(`Error de permisos: ${error.message}`);
+        return;
+      }
+      
       setUsers(data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los usuarios",
-        variant: "destructive",
-      });
+      setError("No se pudieron cargar los usuarios. Verifique los permisos.");
     } finally {
       setLoading(false);
     }
@@ -118,10 +122,34 @@ export default function Users() {
           <UsersIcon className="h-6 w-6" />
           <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
         </div>
-        <div className="text-sm text-muted-foreground">
-          Total: {users.length} usuarios
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-muted-foreground">
+            Total: {users.length} usuarios
+          </div>
+          <AddUserDialog
+            onUserAdded={fetchUsers}
+            trigger={
+              <Button>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Agregar Usuario
+              </Button>
+            }
+          />
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+          <div className="flex items-center gap-2 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <p className="font-medium">Error de Acceso</p>
+          </div>
+          <p className="text-sm mt-1 text-destructive/80">{error}</p>
+          <p className="text-xs mt-2 text-muted-foreground">
+            Esto puede deberse a políticas de seguridad. Asegúrese de tener los permisos necesarios.
+          </p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
