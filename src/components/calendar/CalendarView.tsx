@@ -477,6 +477,7 @@ export function CalendarView() {
                 Nueva Reserva
               </Button>
             }
+            onReservationCreated={fetchReservations}
           />
         </div>
       </div>

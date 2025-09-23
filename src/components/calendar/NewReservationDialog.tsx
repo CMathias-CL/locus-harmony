@@ -48,7 +48,7 @@ interface AcademicPeriod {
   period_type: string;
 }
 
-export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) {
+export function NewReservationDialog({ trigger, onReservationCreated }: { trigger: React.ReactNode; onReservationCreated?: () => void }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -297,6 +297,9 @@ export function NewReservationDialog({ trigger }: { trigger: React.ReactNode }) 
           : "La reserva se ha creado exitosamente.",
       });
 
+      // Refresh calendar data
+      onReservationCreated?.();
+      
       setOpen(false);
       setFormData({
         title: "",
