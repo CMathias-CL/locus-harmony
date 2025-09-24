@@ -248,6 +248,7 @@ export type Database = {
         Row: {
           campus: string | null
           code: string
+          color: string | null
           created_at: string
           description: string | null
           id: string
@@ -257,6 +258,7 @@ export type Database = {
         Insert: {
           campus?: string | null
           code: string
+          color?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -266,6 +268,7 @@ export type Database = {
         Update: {
           campus?: string | null
           code?: string
+          color?: string | null
           created_at?: string
           description?: string | null
           id?: string

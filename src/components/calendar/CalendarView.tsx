@@ -21,6 +21,10 @@ interface Reservation {
   room: {
     name: string;
     code: string;
+    faculty?: {
+      id: string;
+      color: string;
+    };
   };
   course?: {
     id: string;
@@ -48,7 +52,54 @@ const timeSlots = [
   "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
 ];
 
-// Generate color based on course ID for consistency
+// Generate color based on faculty and course for consistency
+const getFacultyColor = (facultyColor: string | null, status: string) => {
+  if (status === "pending") return "bg-amber-50 border-amber-500 text-amber-800 dark:bg-amber-950 dark:border-amber-400 dark:text-amber-200";
+  if (status === "cancelled") return "bg-red-50 border-red-500 text-red-800 dark:bg-red-950 dark:border-red-400 dark:text-red-200";
+  
+  if (facultyColor) {
+    // Convert hex to HSL for consistent light/dark variants
+    const hex = facultyColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16) / 255;
+    const g = parseInt(hex.substr(2, 2), 16) / 255;
+    const b = parseInt(hex.substr(4, 2), 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const diff = max - min;
+    const sum = max + min;
+    const l = sum / 2;
+    
+    let h = 0;
+    let s = 0;
+    
+    if (diff !== 0) {
+      s = l < 0.5 ? diff / sum : diff / (2 - sum);
+      
+      switch (max) {
+        case r:
+          h = ((g - b) / diff) + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / diff + 2;
+          break;
+        case b:
+          h = (r - g) / diff + 4;
+          break;
+      }
+      h /= 6;
+    }
+    
+    const hslH = Math.round(h * 360);
+    const hslS = Math.round(s * 100);
+    
+    return `bg-[hsl(${hslH},${hslS}%,95%)] border-[${facultyColor}] text-[hsl(${hslH},${hslS}%,20%)] dark:bg-[hsl(${hslH},${hslS}%,10%)] dark:border-[${facultyColor}] dark:text-[hsl(${hslH},${hslS}%,80%)]`;
+  }
+  
+  return "bg-gray-50 border-gray-300 text-gray-700 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-300";
+};
+
+// Keep the original function for backward compatibility
 const getCourseColor = (courseId: string | null, status: string) => {
   if (status === "pending") return "bg-amber-50 border-amber-500 text-amber-800 dark:bg-amber-950 dark:border-amber-400 dark:text-amber-200";
   if (status === "cancelled") return "bg-red-50 border-red-500 text-red-800 dark:bg-red-950 dark:border-red-400 dark:text-red-200";
@@ -115,9 +166,11 @@ export function CalendarView() {
   const [loading, setLoading] = useState(true);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [faculties, setFaculties] = useState<{ id: string; name: string; color: string }[]>([]);
 
   useEffect(() => {
     fetchRooms();
+    fetchFaculties();
   }, []);
 
   useEffect(() => {
@@ -141,6 +194,20 @@ export function CalendarView() {
     }
   };
 
+  const fetchFaculties = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('faculties')
+        .select('id, name, color')
+        .order('name');
+
+      if (error) throw error;
+      setFaculties(data || []);
+    } catch (error) {
+      console.error('Error fetching faculties:', error);
+    }
+  };
+
   const fetchReservations = async () => {
     setLoading(true);
     try {
@@ -156,7 +223,10 @@ export function CalendarView() {
         .from('reservations')
         .select(`
           id, title, start_datetime, end_datetime, event_type, status,
-          room:rooms (name, code),
+          room:rooms (
+            name, code,
+            faculty:faculties (id, color)
+          ),
           course:courses (id, name, code),
           created_by:profiles (full_name)
         `)
@@ -289,7 +359,7 @@ export function CalendarView() {
                         {dayReservations.map((reservation) => (
                           <div
                             key={reservation.id}
-                            className={`p-2 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getCourseColor(reservation.course?.id || null, reservation.status)}`}
+                            className={`p-2 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getFacultyColor(reservation.room?.faculty?.color || null, reservation.status)}`}
                             onClick={() => handleReservationClick(reservation)}
                           >
                             <div className="font-semibold truncate">{reservation.title}</div>
@@ -369,7 +439,7 @@ export function CalendarView() {
                           {reservations.map((reservation: Reservation) => (
                             <div
                               key={reservation.id}
-                              className={`p-1 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getCourseColor(reservation.course?.id || null, reservation.status)}`}
+                              className={`p-1 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getFacultyColor(reservation.room?.faculty?.color || null, reservation.status)}`}
                               onClick={() => handleReservationClick(reservation)}
                             >
                               <div className="font-semibold truncate text-[10px]">{reservation.title}</div>
@@ -414,7 +484,7 @@ export function CalendarView() {
                   {dayReservations.map((reservation) => (
                     <div
                       key={reservation.id}
-                      className={`p-3 rounded text-sm font-medium border mb-2 cursor-pointer hover:opacity-80 transition-academic ${getCourseColor(reservation.course?.id || null, reservation.status)}`}
+                      className={`p-3 rounded text-sm font-medium border mb-2 cursor-pointer hover:opacity-80 transition-academic ${getFacultyColor(reservation.room?.faculty?.color || null, reservation.status)}`}
                       onClick={() => handleReservationClick(reservation)}
                     >
                       <div className="flex justify-between items-start">
@@ -592,26 +662,44 @@ export function CalendarView() {
           <CardTitle className="text-lg">Leyenda</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded border border-primary bg-primary/20"></div>
-              <span className="text-sm">Clases Regulares</span>
+          {/* Faculty Colors Legend - only show in all resources view */}
+          {viewType === "all" && faculties.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium mb-2">Colores por Facultad</h4>
+              <div className="flex flex-wrap gap-3">
+                {faculties.map((faculty) => (
+                  <div key={faculty.id} className="flex items-center space-x-2">
+                    <div 
+                      className="w-3 h-3 rounded-full border border-border"
+                      style={{ backgroundColor: faculty.color }}
+                    />
+                    <span className="text-sm text-muted-foreground">{faculty.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded border border-success bg-success/20"></div>
-              <span className="text-sm">Laboratorios</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded border border-purple-500 bg-purple-500/20"></div>
-              <span className="text-sm">Seminarios</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded border border-orange-500 bg-orange-500/20"></div>
-              <span className="text-sm">Exámenes</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded border border-warning bg-warning/20"></div>
-              <span className="text-sm">Pendiente</span>
+          )}
+          
+          {/* Status Legend */}
+          <div>
+            <h4 className="text-sm font-medium mb-2">Estados de Reserva</h4>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded border border-amber-500 bg-amber-500/20"></div>
+                <span className="text-sm">Pendiente</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded border border-green-500 bg-green-500/20"></div>
+                <span className="text-sm">Confirmado</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded border border-red-500 bg-red-500/20"></div>
+                <span className="text-sm">Cancelado</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded border border-blue-500 bg-blue-500/20"></div>
+                <span className="text-sm">Completado</span>
+              </div>
             </div>
           </div>
         </CardContent>

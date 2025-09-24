@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,6 +30,7 @@ const facultySchema = z.object({
   code: z.string().min(1, "El código es requerido"),
   campus: z.string().min(1, "El campus es requerido"),
   description: z.string().optional(),
+  color: z.string().min(1, "El color es requerido"),
 });
 
 type FacultyFormData = z.infer<typeof facultySchema>;
@@ -50,6 +51,7 @@ export function AddFacultyDialog({ onFacultyAdded }: AddFacultyDialogProps) {
       code: "",
       campus: "",
       description: "",
+      color: "#3B82F6",
     },
   });
 
@@ -63,6 +65,7 @@ export function AddFacultyDialog({ onFacultyAdded }: AddFacultyDialogProps) {
           code: data.code,
           campus: data.campus,
           description: data.description || null,
+          color: data.color,
         });
 
       if (error) throw error;
@@ -157,6 +160,38 @@ export function AddFacultyDialog({ onFacultyAdded }: AddFacultyDialogProps) {
                       placeholder="Descripción de la facultad"
                       {...field} 
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="color"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Color</FormLabel>
+                  <FormControl>
+                    <div className="flex items-center space-x-2">
+                      <div 
+                        className="w-8 h-8 rounded border border-border cursor-pointer"
+                        style={{ backgroundColor: field.value }}
+                        onClick={() => document.getElementById('color-picker')?.click()}
+                      />
+                      <input
+                        id="color-picker"
+                        type="color"
+                        value={field.value}
+                        onChange={field.onChange}
+                        className="opacity-0 w-0 h-0"
+                      />
+                      <Input
+                        {...field}
+                        placeholder="#3B82F6"
+                        className="font-mono text-sm"
+                      />
+                      <Palette className="w-4 h-4 text-muted-foreground" />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
