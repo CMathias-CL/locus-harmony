@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, School, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ import { AddFacultyDialog } from "@/components/faculties/AddFacultyDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Faculties() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [faculties, setFaculties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,11 +153,7 @@ export default function Faculties() {
                   size="sm" 
                   className="flex-1"
                   onClick={() => {
-                    // Navigate to rooms filtered by this faculty
-                    const event = new CustomEvent('navigateToRooms', { 
-                      detail: { facultyId: faculty.id }
-                    });
-                    window.dispatchEvent(event);
+                    navigate(`/rooms?faculty=${faculty.id}`);
                   }}
                 >
                   Ver Salas

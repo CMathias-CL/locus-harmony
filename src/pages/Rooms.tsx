@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, MapPin, Users, Monitor, Wifi } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -118,6 +119,7 @@ const getStatusDetails = (room: any) => {
 };
 
 export default function Rooms() {
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterFaculty, setFilterFaculty] = useState<string>("all");
@@ -169,19 +171,12 @@ export default function Rooms() {
     fetchRooms();
     fetchFaculties();
     
-    // Listen for navigation from faculties page
-    const handleNavigateToRooms = (event: CustomEvent) => {
-      if (event.detail?.facultyId) {
-        setFilterFaculty(event.detail.facultyId);
-      }
-    };
-    
-    window.addEventListener('navigateToRooms', handleNavigateToRooms as EventListener);
-    
-    return () => {
-      window.removeEventListener('navigateToRooms', handleNavigateToRooms as EventListener);
-    };
-  }, []);
+    // Check if there's a faculty filter in URL params
+    const facultyParam = searchParams.get('faculty');
+    if (facultyParam) {
+      setFilterFaculty(facultyParam);
+    }
+  }, [searchParams]);
 
   const filteredRooms = rooms.filter((room) => {
     const matchesSearch = room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
