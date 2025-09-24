@@ -168,6 +168,19 @@ export default function Rooms() {
   useEffect(() => {
     fetchRooms();
     fetchFaculties();
+    
+    // Listen for navigation from faculties page
+    const handleNavigateToRooms = (event: CustomEvent) => {
+      if (event.detail?.facultyId) {
+        setFilterFaculty(event.detail.facultyId);
+      }
+    };
+    
+    window.addEventListener('navigateToRooms', handleNavigateToRooms as EventListener);
+    
+    return () => {
+      window.removeEventListener('navigateToRooms', handleNavigateToRooms as EventListener);
+    };
   }, []);
 
   const filteredRooms = rooms.filter((room) => {

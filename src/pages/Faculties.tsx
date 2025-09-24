@@ -146,8 +146,19 @@ export default function Faculties() {
                 <Button variant="outline" size="sm" className="flex-1">
                   Ver Detalles
                 </Button>
-                <Button variant="default" size="sm" className="flex-1">
-                  Gestionar Permisos
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => {
+                    // Navigate to rooms filtered by this faculty
+                    const event = new CustomEvent('navigateToRooms', { 
+                      detail: { facultyId: faculty.id }
+                    });
+                    window.dispatchEvent(event);
+                  }}
+                >
+                  Ver Salas
                 </Button>
               </div>
             </CardContent>
