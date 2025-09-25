@@ -106,26 +106,30 @@ const getFacultyColorStyles = (facultyColor: string | null, status: string) => {
     return {
       backgroundColor: "#fef3c7",
       color: "#92400e",
-      borderColor: "#f59e0b"
+      borderColor: "#f59e0b",
+      borderWidth: "1px",
+      borderStyle: "solid"
     };
   }
   if (status === "cancelled") {
     return {
       backgroundColor: "#fee2e2", 
       color: "#991b1b",
-      borderColor: "#ef4444"
+      borderColor: "#ef4444",
+      borderWidth: "1px",
+      borderStyle: "solid"
     };
   }
   
   if (facultyColor) {
     // Calculate contrast ratio to determine text color
     const hex = facultyColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
     
-    // Calculate relative luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    // Calculate relative luminance using proper sRGB formula
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
     
     // Use white text for dark backgrounds, black for light backgrounds
     const textColor = luminance > 0.5 ? "#000000" : "#ffffff";
@@ -133,7 +137,9 @@ const getFacultyColorStyles = (facultyColor: string | null, status: string) => {
     return {
       backgroundColor: facultyColor,
       color: textColor,
-      borderColor: facultyColor
+      borderColor: facultyColor,
+      borderWidth: "1px",
+      borderStyle: "solid"
     };
   }
   
@@ -141,7 +147,9 @@ const getFacultyColorStyles = (facultyColor: string | null, status: string) => {
   return {
     backgroundColor: "#f3f4f6",
     color: "#374151", 
-    borderColor: "#d1d5db"
+    borderColor: "#d1d5db",
+    borderWidth: "1px",
+    borderStyle: "solid"
   };
 };
 
