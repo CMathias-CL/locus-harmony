@@ -271,7 +271,7 @@ export function CalendarView() {
           id, title, start_datetime, end_datetime, event_type, status,
           room:rooms (
             name, code,
-            faculty:faculties (id, color)
+            faculty:faculties (id, color, name)
           ),
           course:courses (id, name, code),
           created_by:profiles (full_name)
@@ -493,6 +493,9 @@ export function CalendarView() {
                               >
                                 <div className="font-semibold truncate text-[10px]">{reservation.title}</div>
                                 <div className="truncate text-[10px]">{roomCode}</div>
+                                {reservation.room?.faculty && (
+                                  <div className="text-[9px] opacity-75 truncate font-medium">{(reservation.room.faculty as any).name}</div>
+                                )}
                                 {reservation.course && (
                                   <div className="text-[9px] opacity-75 truncate">{reservation.course.code}</div>
                                 )}
