@@ -99,6 +99,52 @@ const getFacultyColor = (facultyColor: string | null, status: string) => {
   return "bg-gray-50 border-gray-300 text-gray-700 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-300";
 };
 
+// Generate color styles based on faculty and status for proper contrast
+const getFacultyColorStyles = (facultyColor: string | null, status: string) => {
+  // Special status colors
+  if (status === "pending") {
+    return {
+      backgroundColor: "#fef3c7",
+      color: "#92400e",
+      borderColor: "#f59e0b"
+    };
+  }
+  if (status === "cancelled") {
+    return {
+      backgroundColor: "#fee2e2", 
+      color: "#991b1b",
+      borderColor: "#ef4444"
+    };
+  }
+  
+  if (facultyColor) {
+    // Calculate contrast ratio to determine text color
+    const hex = facultyColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Calculate relative luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    // Use white text for dark backgrounds, black for light backgrounds
+    const textColor = luminance > 0.5 ? "#000000" : "#ffffff";
+    
+    return {
+      backgroundColor: facultyColor,
+      color: textColor,
+      borderColor: facultyColor
+    };
+  }
+  
+  // Default gray colors
+  return {
+    backgroundColor: "#f3f4f6",
+    color: "#374151", 
+    borderColor: "#d1d5db"
+  };
+};
+
 // Keep the original function for backward compatibility
 const getCourseColor = (courseId: string | null, status: string) => {
   if (status === "pending") return "bg-amber-50 border-amber-500 text-amber-800 dark:bg-amber-950 dark:border-amber-400 dark:text-amber-200";
@@ -436,19 +482,23 @@ export function CalendarView() {
                     >
                       {Array.from(roomReservations.entries()).map(([roomCode, reservations]) => (
                         <div key={roomCode} className="mb-1">
-                          {reservations.map((reservation: Reservation) => (
-                            <div
-                              key={reservation.id}
-                              className={`p-1 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic ${getFacultyColor(reservation.room?.faculty?.color || null, reservation.status)}`}
-                              onClick={() => handleReservationClick(reservation)}
-                            >
-                              <div className="font-semibold truncate text-[10px]">{reservation.title}</div>
-                              <div className="truncate text-[10px]">{roomCode}</div>
-                              {reservation.course && (
-                                <div className="text-[9px] opacity-75 truncate">{reservation.course.code}</div>
-                              )}
-                            </div>
-                          ))}
+                          {reservations.map((reservation: Reservation) => {
+                            const colorStyles = getFacultyColorStyles(reservation.room?.faculty?.color || null, reservation.status);
+                            return (
+                              <div
+                                key={reservation.id}
+                                className="p-1 rounded text-xs font-medium border mb-1 cursor-pointer hover:opacity-80 transition-academic"
+                                style={colorStyles}
+                                onClick={() => handleReservationClick(reservation)}
+                              >
+                                <div className="font-semibold truncate text-[10px]">{reservation.title}</div>
+                                <div className="truncate text-[10px]">{roomCode}</div>
+                                {reservation.course && (
+                                  <div className="text-[9px] opacity-75 truncate">{reservation.course.code}</div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       ))}
                     </div>
